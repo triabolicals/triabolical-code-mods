@@ -28,14 +28,6 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle = game_var_i::getNumber(COOK_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 5, 1);
-        let mut replace = &[0xe1, 0x03, 0x00, 0x2a];
-        if (result == 0){ replace = &[0xe1, 0x03, 0x00, 0x2a];}
-        else if (result == 1){  replace = &[0x81, 0x00, 0x80, 0x52];}
-        else if (result == 2){  replace = &[0x61, 0x00, 0x80, 0x52];}
-        else if (result == 3){  replace = &[0x41, 0x00, 0x80, 0x52];}
-        else if (result == 4){  replace = &[0x21, 0x00, 0x80, 0x52];}
-        else if (result == 5){  replace = &[0x01, 0x00, 0x80, 0x52];}
-        Patch::in_text(0x02544808).bytes(replace);
         if toggle != result {
             game_var_i::setNumber(COOK_KEY, result);
             Self::set_command_text(this, None);

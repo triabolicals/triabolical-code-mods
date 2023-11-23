@@ -19,6 +19,7 @@ pub fn main() {
     Patch::in_text(0x020994E0).bytes(replace).unwrap();
     Patch::in_text(0x02099538).bytes(replace).unwrap();
 
+    // testing 0%
     cutscene::cutscene_install();
     support::support_install();
     map::map_mod_install();

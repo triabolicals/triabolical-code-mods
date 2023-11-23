@@ -48,7 +48,7 @@ impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
     }
 }
 #[no_mangle]
-extern "C" fn cutscene() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<CutsceneMod>("Skip Cutscenes") }
+extern "C" fn cutscene() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<CutsceneMod>("Skip Cutscenes/Movies") }
 
 pub fn cutscene_install(){
    cobapi::install_game_setting(cutscene);
