@@ -1,7 +1,8 @@
 #![feature(lazy_cell, ptr_sub_ptr)]
 use skyline::patching::Patch;
 use unity::prelude::*;
-mod game_var_i;
+use unity::{il2cpp::class::Il2CppRGCTXData, prelude::*};
+use engage::gamedata::*;
 mod map;
 mod support;
 mod arena;
@@ -9,6 +10,33 @@ mod cutscene;
 mod rng;
 mod cook;
 mod level;
+
+#[unity::class("App", "GameSaveData")]
+pub struct GameSaveData {}
+
+#[unity::class("App", "Stream")]
+pub struct Stream {}
+
+#[skyline::hook(offset = 0x2281a80)]
+pub fn load_settings(this: &GameSaveData, stream: &Stream, method_info: OptionalMethod) -> bool {
+    let value: bool = call_original!(this, stream, None);
+    if value {
+        rng::patchRNG();
+        support::patchSupport();
+        cutscene::patchCutscenes();
+        map::patchMap();
+        arena::patchArena();
+        cook::patchCook();
+        level::patchLvl();
+        level::patchGrowth();
+        level::changeCharacters();
+        println!("Loaded triabolical settings. I hope...");
+    }
+    return value;
+
+}
+
+
 
 #[skyline::main(name = "libtriabolical")]
 pub fn main() {
@@ -27,8 +55,8 @@ pub fn main() {
     level::level_install();
     rng::rng_install();
     cook::cook_install();
-    
+    skyline::install_hooks!(load_settings);
     println!("triabolical code mods are loaded");
     
-
+    
 }

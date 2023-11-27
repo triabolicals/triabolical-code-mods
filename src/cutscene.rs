@@ -5,17 +5,19 @@ use engage::gamevariable::*;
 pub const CUTSCENES_KEY: &str = "G_CUTSCENE";
 
 pub struct CutsceneMod;
-fn patchCutscenes(){
+pub fn patchCutscenes(){
     GameVariableManager::make_entry_norewind(CUTSCENES_KEY, 0);
     let active = GameVariableManager::get_bool(CUTSCENES_KEY);
     if (active){
         let replace = &[0xC0, 0x03, 0x5F, 0xD6];
         Patch::in_text(0x01ed8e20).bytes(replace).unwrap();
         Patch::in_text(0x01ed8ef0).bytes(replace).unwrap();
+        println!("Cutscenes/Movies are not skipped");
     }
     else {
         Patch::in_text(0x01ed8e20).bytes(&[0xFD, 0x7B, 0xBE, 0xA9]).unwrap();
         Patch::in_text(0x01ed8ef0).bytes(&[0xFD, 0x7B, 0xBD, 0xA9]).unwrap();
+        println!("Cutscenes/Movies are skipped");
     }
 }
 

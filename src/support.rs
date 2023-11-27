@@ -2,12 +2,11 @@ use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
-use crate::game_var_i;
 pub const SUPPORT_KEY: &str = "G_SUPPORT_TYPE";
 
-fn patchSupport() {
+pub fn patchSupport() {
     GameVariableManager::make_entry_norewind(SUPPORT_KEY, 0);
-    let active = game_var_i::getNumber(SUPPORT_KEY);
+    let active =  GameVariableManager::get_number(SUPPORT_KEY);
     let replaceB = &[0xfd, 0x7b, 0xba, 0xa9];
     let replaceS = &[0xff,0xc3,0x01,0xd1];
     let replaceRig = &[0xC0, 0x03, 0x5F, 0xD6];
@@ -35,10 +34,10 @@ impl ConfigBasicMenuItemSwitchMethods for SupportMod {
         patchSupport();
     }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
-        let toggle = game_var_i::getNumber(SUPPORT_KEY);;
+        let toggle =  GameVariableManager::get_number(SUPPORT_KEY);;
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 3, 1);
         if toggle != result {
-            game_var_i::setNumber(SUPPORT_KEY, result);
+            GameVariableManager::set_number(SUPPORT_KEY, result);
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
@@ -47,7 +46,7 @@ impl ConfigBasicMenuItemSwitchMethods for SupportMod {
         } else {return BasicMenuResult::new(); }
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let typeC = game_var_i::getNumber(SUPPORT_KEY);;
+        let typeC =  GameVariableManager::get_number(SUPPORT_KEY);;
         if typeC == 0 {this.help_text = format!("Play bond and support conversations in the reference menu.").into(); }
         else if typeC == 1 { this.help_text = format!("Skip bond conversations in the reference menu.").into(); }
         else if typeC == 2 { this.help_text = format!("Skip support conversations in the reference menu.").into(); }
@@ -55,7 +54,7 @@ impl ConfigBasicMenuItemSwitchMethods for SupportMod {
         else {this.help_text = format!("Unknown Setting").into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let typeC = game_var_i::getNumber(SUPPORT_KEY);
+        let typeC =  GameVariableManager::get_number(SUPPORT_KEY);
         if typeC == 0 {this.command_text = format!("Off").into(); }
         else if typeC == 1 { this.command_text = format!("Bond Only").into(); }
         else if typeC == 2 { this.command_text = format!("Support Only").into(); }

@@ -2,13 +2,11 @@ use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::gamevariable::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
-use crate::game_var_i;
-
 pub const MAP_KEY: &str = "G_MAP_SKIP";
 
-fn patchMap(){
+pub fn patchMap(){
     GameVariableManager::make_entry_norewind(MAP_KEY, 0);
-    let active = game_var_i::getNumber(MAP_KEY);
+    let active = GameVariableManager::get_number(MAP_KEY);
     if active == 0 { //None
         Patch::in_text(0x01ed91c0).bytes(&[0xfd,0x7b,0xbd,0xa9]).unwrap();
         Patch::in_text(0x01ed8370).bytes(&[0xfd, 0x7b, 0xbd, 0xa9]).unwrap();
@@ -16,24 +14,27 @@ fn patchMap(){
     else if active == 1 { // Tutorial
         Patch::in_text(0x01ed91c0).bytes(&[0xC0, 0x03, 0x5F, 0xD6]).unwrap();
             Patch::in_text(0x01ed8370).bytes(&[0xfd, 0x7b, 0xbd, 0xa9]).unwrap();
+            println!("Map Tutorials are skipped");
     }
     else if active == 2 {//Map
         Patch::in_text(0x01ed8370).bytes(&[0xC0, 0x03, 0x5F, 0xD6]).unwrap();
         Patch::in_text(0x01ed91c0).bytes(&[0xfd,0x7b,0xbd,0xa9]).unwrap();
+        println!("Map Dialogue are skipped");
     }
     else if active == 3 { //Both
         Patch::in_text(0x01ed91c0).bytes(&[0xC0, 0x03, 0x5F, 0xD6]).unwrap();
         Patch::in_text(0x01ed8370).bytes(&[0xC0, 0x03, 0x5F, 0xD6]).unwrap();
+        println!("Map Tutorials and Dialogue are skipped");
     }
 }
 pub struct MapMod;
 impl ConfigBasicMenuItemSwitchMethods for MapMod {
     fn init_content(this: &mut ConfigBasicMenuItem){ patchMap(); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
-        let toggle = game_var_i::getNumber(MAP_KEY);
+        let toggle =  GameVariableManager::get_number(MAP_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 3, 1);
         if toggle != result {
-            game_var_i::setNumber(MAP_KEY, result);
+            GameVariableManager::set_number(MAP_KEY, result);
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
@@ -42,14 +43,14 @@ impl ConfigBasicMenuItemSwitchMethods for MapMod {
         } else {return BasicMenuResult::new(); }
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let active  = game_var_i::getNumber(MAP_KEY);
+        let active  =  GameVariableManager::get_number(MAP_KEY);
         if active == 0 { this.help_text = format!("Enables map dialogue and tutorials.").into(); } 
         else if active == 1 { this.help_text = format!("Skips in-map tutorials.").into(); }
         else if active == 2 { this.help_text = format!("Skips in-map dialogue.").into(); }
         else if active == 3 { this.help_text = format!("Skips in-map tutorials and dialogue.").into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let active  = game_var_i::getNumber(MAP_KEY);
+        let active  =  GameVariableManager::get_number(MAP_KEY);
         if active == 0 { this.command_text = format!("Off").into(); } 
         else if active == 1 { this.command_text = format!("Tutorials Only").into(); }
         else if active == 2 { this.command_text = format!("Dialogue Only").into(); }

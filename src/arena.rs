@@ -5,7 +5,7 @@ use engage::gamevariable::*;
 
 pub const ARENA_KEY: &str = "G_ARENA_SKIP";
 pub struct ArenaMod;
-fn patchArena(){
+pub fn patchArena(){
     GameVariableManager::make_entry_norewind(ARENA_KEY, 0);
     let active = GameVariableManager::get_bool(ARENA_KEY);
     if (active){
@@ -45,6 +45,7 @@ fn patchArena(){
         Patch::in_text(0x01ca616c).bytes(&[0x60,0x00, 0x80, 0x52]).unwrap();
         Patch::in_text(0x01ca6124).bytes(&[0x00,0x10, 0x20, 0x1E]).unwrap();
         Patch::in_text(0x01ca64c8).bytes(&[0xE1,0x03, 0x1F, 0xAA]).unwrap();
+        println!("Arena battles are skipped");
     }
     else {
         Patch::in_text(0x01caa414).bytes(&[0xbb, 0x2f, 0x1f, 0x94]).unwrap();
@@ -71,6 +72,7 @@ fn patchArena(){
         Patch::in_text(0x01ca616c).bytes(&[0x80 , 0x00 , 0x80 , 0x52]).unwrap();
         Patch::in_text(0x01ca6124).bytes(&[0x00 , 0x10 , 0x2e , 0x1e]).unwrap();
         Patch::in_text(0x01ca64c8).bytes(&[0xe1 , 0x03 , 0x16 , 0xaa]).unwrap();
+        println!("Arena battles are not skipped");
     }
 }
 impl ConfigBasicMenuItemSwitchMethods for ArenaMod {
