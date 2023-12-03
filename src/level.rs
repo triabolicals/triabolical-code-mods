@@ -5,40 +5,103 @@ use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, C
 use engage::gamevariable::*;
 use engage::gameuserdata::GameUserData;
 use engage::{gamedata::*, singleton::SingletonClass};
-use engage::{gamedata::person::*};
+use engage::{gamedata::person::*, gamedata::unit::*};
 
 pub const CHARACTER_KEY: &str = "G_CHARACTER";
 pub const LEVEL_DIS_KEY: &str = "G_LEVEL_TYPE";
 pub const GROWTH_KEY: &str = "G_GROWTH_TYPE";
 pub static mut setPerson: bool = false;
-pub const NameArray : &[&str] = &["MPID_Vandre", "MPID_Clan", "MPID_Fram", "MPID_Alfred", "MPID_Etie", "MPID_Boucheron", "MPID_Celine", "MPID_Chloe", "MPID_Louis", "MPID_Yunaka", "MPID_Staluke", "MPID_Citrinica", "MPID_Lapis", "MPID_Diamand", "MPID_Umber", "MPID_Jade", "MPID_Ivy", "MPID_Kagetsu", "MPID_Zelkova", "MPID_Fogato", "MPID_Pandoro", "MPID_Bonet", "MPID_Misutira", "MPID_Panetone", "MPID_Merin", "MPID_Hortensia", "MPID_Seadas", "MPID_Rosado", "MPID_Goldmary", "MPID_Linden", "MPID_Saphir", "MPID_Veyre", "MPID_Mauve", "MPID_Anna", "MPID_Jean" ];
+pub const NameArray : &[&str] = &["MPID_Lueur", "MPID_Vandre", "MPID_Clan", "MPID_Fram", "MPID_Alfred", "MPID_Etie", "MPID_Boucheron", "MPID_Celine", "MPID_Chloe", "MPID_Louis", "MPID_Yunaka", "MPID_Staluke", "MPID_Citrinica", "MPID_Lapis", "MPID_Diamand", "MPID_Umber", "MPID_Jade", "MPID_Ivy", "MPID_Kagetsu", "MPID_Zelkova", "MPID_Fogato", "MPID_Pandoro", "MPID_Bonet", "MPID_Misutira", "MPID_Panetone", "MPID_Merin", "MPID_Hortensia", "MPID_Seadas", "MPID_Rosado", "MPID_Goldmary", "MPID_Linden", "MPID_Saphir", "MPID_Veyre", "MPID_Mauve", "MPID_Anna", "MPID_Jean" ];
 pub const OptionArray : &[&str] = &["None", "Vander", "Clanne", "Framme", "Alfred", "Etie", "Boucheron", "Céline", "Chloé", "Louis", "Yunaka", "Alcryst", "Citrinne", "Lapis", "Diamant", "Amber", "Jade", "Ivy", "Kagetsu", "Zelkov", "Fogato", "Pandero", "Bunet", "Timerra", "Panette", "Merrin", "Hortensia", "Seadall", "Rosado", "Goldmary", "Linden", "Saphir", "Veyle", "Mauvier", "Anna", "Jean"];
-pub const HelpArray : &[&str] = &["MPID_H_Vandre", "MPID_H_Clan", "MPID_H_Fram", "MPID_H_Alfred", "MPID_H_Etie", "MPID_H_Boucheron", "MPID_H_Celine", "MPID_H_Chloe", "MPID_H_Louis", "MPID_H_Yunaka", "MPID_H_Staluke", "MPID_H_Citrinica", "MPID_H_Lapis", "MPID_H_Diamand", "MPID_H_Umber", "MPID_H_Jade", "MPID_H_Ivy", "MPID_H_Kagetsu", "MPID_H_Zelkova", "MPID_H_Fogato", "MPID_H_Pandoro", "MPID_H_Bonet", "MPID_H_Misutira", "MPID_H_Panetone", "MPID_H_Merin", "MPID_H_Hortensia", "MPID_H_Seadas", "MPID_H_Rosado", "MPID_H_Goldmary", "MPID_H_Linden", "MPID_H_Saphir", "MPID_H_Veyre", "MPID_H_Mauve", "MPID_H_Anna", "MPID_H_Jean" ];
+pub const HelpArray : &[&str] = &["MPID_H_Lueur", "MPID_H_Vandre", "MPID_H_Clan", "MPID_H_Fram", "MPID_H_Alfred", "MPID_H_Etie", "MPID_H_Boucheron", "MPID_H_Celine", "MPID_H_Chloe", "MPID_H_Louis", "MPID_H_Yunaka", "MPID_H_Staluke", "MPID_H_Citrinica", "MPID_H_Lapis", "MPID_H_Diamand", "MPID_H_Umber", "MPID_H_Jade", "MPID_H_Ivy", "MPID_H_Kagetsu", "MPID_H_Zelkova", "MPID_H_Fogato", "MPID_H_Pandoro", "MPID_H_Bonet", "MPID_H_Misutira", "MPID_H_Panetone", "MPID_H_Merin", "MPID_H_Hortensia", "MPID_H_Seadas", "MPID_H_Rosado", "MPID_H_Goldmary", "MPID_H_Linden", "MPID_H_Saphir", "MPID_H_Veyre", "MPID_H_Mauve", "MPID_H_Anna", "MPID_H_Jean" ];
 
-pub fn patchLvl(){
-    GameVariableManager::make_entry_norewind(LEVEL_DIS_KEY, 0);
-    let result = GameVariableManager::get_bool(LEVEL_DIS_KEY);
-    if (result){
-        Patch::in_text(0x01a5bbc0).bytes(&[0x02, 0x24, 0x82, 0x39]).unwrap();
-        Patch::in_text(0x01a5bbc4).bytes(&[0x03, 0x60, 0x85, 0x39]).unwrap();
-        Patch::in_text(0x01a5bbc8).bytes(&[0x40, 0x00, 0x03, 0x8B]).unwrap();
-        Patch::in_text(0x01a5bbcc).bytes(&[0xC0, 0x03, 0x5F, 0xD6]).unwrap();
-        Patch::in_text(0x01f9e280).bytes(&[0x50, 0xF6, 0xEA, 0x97]).unwrap();
-        Patch::in_text(0x01f9e290).bytes(&[0x4C, 0xF6, 0xEA, 0x97]).unwrap();
-        Patch::in_text(0x01c669fc).bytes(&[0x71, 0xD4, 0xF7, 0x97]).unwrap();
-        Patch::in_text(0x01c66a0c).bytes(&[0x6D, 0xD4, 0xF7, 0x97]).unwrap();
-        println!("Level Display switch to Total");
-    }
-    else {
-        Patch::in_text(0x01a5bbc0).bytes(&[0x00, 0x24, 0x42, 0x39]).unwrap();
-        Patch::in_text(0x01a5bbc4).bytes( &[0xC0, 0x03, 0x5F, 0xD6]).unwrap();
-        Patch::in_text(0x01f9e280).bytes(&[0x08, 0x56, 0xea, 0x97]).unwrap();
-        Patch::in_text(0x01f9e290).bytes(&[0x04, 0x56, 0xea, 0x97]).unwrap();
-        Patch::in_text(0x01c669fc).bytes(&[0x29, 0x34, 0xf7, 0x97]).unwrap();
-        Patch::in_text(0x01c66a0c).bytes(&[0x25, 0x34, 0xf7, 0x97]).unwrap();
-        println!("Level Display switch to Default");
+#[unity::class("TMPro", "TextMeshProUGUI")]
+pub struct TextMeshProUGUI {}
+
+#[unity::class("App", "UnitStatusSetter")]
+pub struct UnitStatusSetter {
+    junk: [u8; 376],
+    level: &'static UnitStatusSetter_ValueParam,
+    //
+}
+
+#[unity::class("App", "UnitStatusSetter_ValueParam")]
+pub struct UnitStatusSetter_ValueParam {
+    setter: &'static UnitStatusSetter,
+    m_root_ptr: u64,
+    m_title: &'static TextMeshProUGUI,
+    m_value: &'static TextMeshProUGUI,
+    //
+}
+#[unity::class("App", "UnitInfoParamSetter")]
+pub struct UnitInfoParamSetter {
+    junk : [u8; 160],
+    m_level : &'static TextMeshProUGUI,
+}
+
+#[skyline::hook(offset = 0x1f9d320)]
+pub fn UnitInfo_SetLevel(this: &UnitInfoParamSetter, unit: Option<&Unit>, x: i32, z: i32, bSelectedGod: bool, god: &GodUnit, method_info: OptionalMethod){
+    call_original!(this, unit, x, z, bSelectedGod, god, method_info);
+    match unit {
+        Some(p) => {
+            unsafe {
+
+            GameVariableManager::make_entry_norewind(LEVEL_DIS_KEY, 0);
+            let result = GameVariableManager::get_bool(LEVEL_DIS_KEY);
+            let enLevel = unit_GetEnhancedLevel(p, None);
+            let mut displayed_level = enLevel;
+            if result {
+                displayed_level = enLevel + (p.m_InternalLevel as i32);
+            }
+            TrySetText(this.m_level, displayed_level, None);
+            }
+        },
+        None => {},
     }
 }
+
+#[skyline::from_offset(0x290f1c0)]
+pub fn TrySetText(tmp: &TextMeshProUGUI, value: i32, method_info: OptionalMethod);
+
+#[skyline::from_offset(0x1b58360)]
+pub fn SetValueDirect(this: &UnitStatusSetter_ValueParam, str: &Il2CppString, dir: i32, isLimit: bool, method_info: OptionalMethod);
+
+
+#[skyline::hook(offset = 0x1c66980)]
+pub fn Set__Level(this: &UnitStatusSetter, unit: &Unit, unit_no_enhance: &Unit, method_info: OptionalMethod){
+    call_original!(this, unit, unit_no_enhance, method_info);
+    GameVariableManager::make_entry_norewind(LEVEL_DIS_KEY, 0);
+    let result = GameVariableManager::get_bool(LEVEL_DIS_KEY);
+
+    unsafe {
+        let enLevel = unit_GetEnhancedLevel(unit, None);
+        let no_enLevel = unit_GetEnhancedLevel(unit_no_enhance, None);
+        let unit_level = unit_no_enhance.m_Level;
+        let max_level = jobdata_get_max_level(unit_no_enhance.m_Job, None);
+        let boost: i32 = (no_enLevel < enLevel) as i32;
+        let at_limit: bool = max_level <= unit_level;
+
+        let displayed_level = enLevel;
+
+        if result {
+            let internal_level = unit_no_enhance.m_InternalLevel;
+            if internal_level == 0{
+                let level_str = format!("{}", displayed_level).into();
+                SetValueDirect(this.level, level_str , boost, at_limit, None);
+            }
+            else {
+                let level_str = format!("{}/{}", displayed_level, internal_level).into();
+                SetValueDirect(this.level, level_str , boost, at_limit, None);
+            }
+
+        }
+        else {
+            let level_str = format!("{}", displayed_level).into();
+            SetValueDirect(this.level, level_str , boost, at_limit, None);
+        }
+    }
+}
+
 fn restoreDefault(){
     //Growth Mode Call
     Patch::in_text(0x01a3a3c4).bytes(&[0xe7, 0x6a, 0x2b, 0x94]).unwrap();
@@ -101,6 +164,8 @@ pub fn set_Person(){
             set_person(t_list[51], t_list[937]);
             // Jean 52
             set_person(t_list[52], t_list[938]);
+            // Alear 1
+            set_person(t_list[1], t_list[939]);
         }
     }
     unsafe { setPerson = true; }
@@ -115,33 +180,37 @@ pub fn changeCharacters(){
         unsafe {
             for x in 2..33 {   
                 set_person(t_list[902+x], t_list[x]);
-                set_name(t_list[x], NameArray[x-2].into(), None);
-                set_help(t_list[x], HelpArray[x-2].into(), None);
+                set_name(t_list[x], NameArray[x-1].into(), None);
+                set_help(t_list[x], HelpArray[x-1].into(), None);
             }
             // Veyle 39
             set_person(t_list[935], t_list[39]);
-            set_name(t_list[39], NameArray[31].into(), None);
-            set_help(t_list[39], HelpArray[31].into(), None);
+            set_name(t_list[39], NameArray[32].into(), None);
+            set_help(t_list[39], HelpArray[32].into(), None);
             // Mauvier 49
             set_person(t_list[936], t_list[49]);
-            set_name(t_list[49], NameArray[32].into(), None);
-            set_help(t_list[49], HelpArray[32].into(), None);
+            set_name(t_list[49], NameArray[33].into(), None);
+            set_help(t_list[49], HelpArray[33].into(), None);
 
             // Anna 51 
             set_person(t_list[937], t_list[51]);
-            set_name(t_list[51], NameArray[33].into(), None);
-            set_help(t_list[51], HelpArray[33].into(), None);
+            set_name(t_list[51], NameArray[34].into(), None);
+            set_help(t_list[51], HelpArray[34].into(), None);
 
             // Jean 52
             set_person(t_list[938], t_list[52]);
-            set_name(t_list[52], NameArray[34].into(), None);
-            set_help(t_list[52], HelpArray[34].into(), None);
+            set_name(t_list[52], NameArray[35].into(), None);
+            set_help(t_list[52], HelpArray[35].into(), None);
+
+            set_person(t_list[939], t_list[1]);
+            set_name(t_list[1], NameArray[0].into(), None);
+            set_help(t_list[1], HelpArray[0].into(), None);
             println!("Characters are set to default.");
         }
     }
     else {
         let index: usize = (903 + result).try_into().unwrap();
-        let index2: usize = (result -1).try_into().unwrap();
+        let index2: usize = (result).try_into().unwrap();
         let name = NameArray[index2];
         let help = HelpArray[index2];
         unsafe {
@@ -168,6 +237,14 @@ pub fn changeCharacters(){
             set_person(t_list[index], t_list[52]);
             set_name(t_list[52], name.into(), None);
             set_help(t_list[52], help.into(), None);
+
+            set_person(t_list[index], t_list[1]);
+            set_name(t_list[1], name.into(), None);
+            set_help(t_list[1], help.into(), None);
+            
+            let skill_array_lueur = get_CommonSkill(t_list[939], None);
+            set_CommonSkill(t_list[1], skill_array_lueur, None);
+
             println!("Characters are set to {}", name);
         }
     }
@@ -192,6 +269,8 @@ impl ConfigBasicMenuItemSwitchMethods for CharacterMod {
                 set_person(t_list[51], t_list[937]);
                 // Jean 52
                 set_person(t_list[52], t_list[938]);
+                // Lueur
+                set_person(t_list[1], t_list[939]);
             }
         }
         unsafe { setPerson = true; }
@@ -275,9 +354,7 @@ impl ConfigBasicMenuItemSwitchMethods for  GrowthMod {
 }
 pub struct LevelMod;
 impl ConfigBasicMenuItemSwitchMethods for LevelMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ 
-
-    }
+    fn init_content(this: &mut ConfigBasicMenuItem){  }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle = GameVariableManager::get_bool(LEVEL_DIS_KEY);
         let result = ConfigBasicMenuItem::change_key_value_b(toggle);
@@ -286,7 +363,6 @@ impl ConfigBasicMenuItemSwitchMethods for LevelMod {
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
-            patchLvl();
             return BasicMenuResult::se_cursor();
         } else {return BasicMenuResult::new(); }
     }
