@@ -12,11 +12,15 @@ pub fn patchCutscenes(){
         let replace = &[0xC0, 0x03, 0x5F, 0xD6];
         Patch::in_text(0x01ed8e20).bytes(replace).unwrap();
         Patch::in_text(0x01ed8ef0).bytes(replace).unwrap();
+        Patch::in_text(0x01eda300).bytes(replace).unwrap();
+        Patch::in_text(0x01eda3c0).bytes(replace).unwrap();
         println!("Cutscenes/Movies are skipped");
     }
     else {
         Patch::in_text(0x01ed8e20).bytes(&[0xFD, 0x7B, 0xBE, 0xA9]).unwrap();
         Patch::in_text(0x01ed8ef0).bytes(&[0xFD, 0x7B, 0xBD, 0xA9]).unwrap();
+        Patch::in_text(0x01eda300).bytes(&[0xe8, 0x0f, 0x1b,0xfc]).unwrap();
+        Patch::in_text(0x01eda3c0).bytes(&[0xec, 0x0f, 0x1b,0xfc]).unwrap();
         println!("Cutscenes/Movies are not skipped");
 
     }
