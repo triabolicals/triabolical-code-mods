@@ -42,9 +42,7 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
         else if type_C == 3 { this.help_text = format!("Dish will have the Chief's 3rd dish title.").into();  }
         else if type_C == 2 { this.help_text = format!("Dish will have the Chief's 2nd dish title.").into();  }
         else if type_C == 1 { this.help_text = format!("Dish will have the Chief's 1st dish title.").into();  }
-
-
-        this.help_text = format!("Forces cooking outcome.").into();
+        //this.help_text = format!("Forces cooking outcome.").into();
      }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let type_C =  GameVariableManager::get_number(COOK_KEY);
