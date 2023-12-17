@@ -72,6 +72,10 @@ dependencies = [
 [[package]]
 name = "engage"
 version = "0.2.0"
+<<<<<<< HEAD
+=======
+source = "git+https://github.com/triabolicals/engage#f00e0db7747275f943ab62f27895fe980e3e0716"
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 dependencies = [
  "bitflags",
  "lazysimd",

@@ -3,8 +3,11 @@ use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
 pub const CUTSCENES_KEY: &str = "G_CUTSCENE";
+<<<<<<< HEAD
 pub const BGM_KEY: &str = "G_BGM";
 pub const GIFT_KEY: &str = "G_GIFT";
+=======
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 
 pub struct CutsceneMod;
 pub fn patchCutscenes(){
@@ -14,16 +17,36 @@ pub fn patchCutscenes(){
         let replace = &[0xC0, 0x03, 0x5F, 0xD6];
         Patch::in_text(0x01ed8e20).bytes(replace).unwrap();
         Patch::in_text(0x01ed8ef0).bytes(replace).unwrap();
+<<<<<<< HEAD
+=======
+        Patch::in_text(0x01eda300).bytes(replace).unwrap();
+        Patch::in_text(0x01eda3c0).bytes(replace).unwrap();
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
         println!("Cutscenes/Movies are skipped");
     }
     else {
         Patch::in_text(0x01ed8e20).bytes(&[0xFD, 0x7B, 0xBE, 0xA9]).unwrap();
         Patch::in_text(0x01ed8ef0).bytes(&[0xFD, 0x7B, 0xBD, 0xA9]).unwrap();
+<<<<<<< HEAD
         println!("Cutscenes/Movies are not skipped");
     }
 }
 impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
     fn init_content(this: &mut ConfigBasicMenuItem){  patchCutscenes(); }
+=======
+        Patch::in_text(0x01eda300).bytes(&[0xe8, 0x0f, 0x1b,0xfc]).unwrap();
+        Patch::in_text(0x01eda3c0).bytes(&[0xec, 0x0f, 0x1b,0xfc]).unwrap();
+        println!("Cutscenes/Movies are not skipped");
+
+    }
+}
+
+
+impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
+    fn init_content(this: &mut ConfigBasicMenuItem){ 
+        patchCutscenes();
+    }
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle = GameVariableManager::get_bool(CUTSCENES_KEY);
         let result = ConfigBasicMenuItem::change_key_value_b(toggle);
@@ -47,6 +70,7 @@ impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
         else { this.command_text = format!("Off").into(); }
     }
 }
+<<<<<<< HEAD
 pub struct BGMmod;
 impl ConfigBasicMenuItemSwitchMethods for BGMmod {
     fn init_content(this: &mut ConfigBasicMenuItem){ 
@@ -150,4 +174,11 @@ pub fn cutscene_install(){
    cobapi::install_game_setting(cutscene);
    cobapi::install_game_setting(bgm);
    cobapi::install_game_setting(gift);
+=======
+#[no_mangle]
+extern "C" fn cutscene() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<CutsceneMod>("Skip Cutscenes/Movies") }
+
+pub fn cutscene_install(){
+   cobapi::install_game_setting(cutscene);
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 }

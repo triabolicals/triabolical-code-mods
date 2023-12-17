@@ -3,15 +3,21 @@ use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
 use engage::gamedata::unit::Unit;
+<<<<<<< HEAD
 use engage::force::*;
+=======
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 use engage::gamedata::JobData;
 use engage::gameuserdata::GameUserData;
 
 pub const RNG_KEY: &str = "G_RNG_TYPE";
 pub const EXP_KEY: &str = "G_EXP_TYPE";
+<<<<<<< HEAD
 
 //RNG mod and EXP mod 
 
+=======
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 pub struct RNGMod;
 pub fn patchRNG(){
     GameVariableManager::make_entry_norewind(RNG_KEY, 0);
@@ -75,6 +81,7 @@ impl ConfigBasicMenuItemSwitchMethods for RNGMod {
         else {this.help_text = format!("Unknown").into(); }
     }
 }
+<<<<<<< HEAD
 
 pub struct ExpMod;
 impl ConfigBasicMenuItemSwitchMethods for ExpMod {
@@ -107,6 +114,8 @@ impl ConfigBasicMenuItemSwitchMethods for ExpMod {
         else if type_C == 4 {this.command_text = format!("Random").into(); }
     }
 }
+=======
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 #[unity::class("App", "UnitGrowSequence")]
 pub struct UnitGrowSequence {
     proc: [u8; 96],
@@ -129,6 +138,7 @@ pub struct LevelUpSequnece {
     m_isClassChange: bool,
 }
 
+<<<<<<< HEAD
 #[skyline::from_offset(0x2b4afa0)]
 pub fn GetAverageLevel(difficulty: i32, sortieCount: i32, method_info: OptionalMethod) -> i32;
 
@@ -146,13 +156,57 @@ pub fn normalizeExp(this: &Unit, exp: i32, method_info: OptionalMethod) -> i32 {
             return new_exp;
         }
     }
+=======
+pub struct ExpMod;
+impl ConfigBasicMenuItemSwitchMethods for ExpMod {
+    fn init_content(this: &mut ConfigBasicMenuItem){
+        GameVariableManager::make_entry_norewind(EXP_KEY, 0);
+    }
+    extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
+        let toggle =  GameVariableManager::get_bool(EXP_KEY);
+        let result = ConfigBasicMenuItem::change_key_value_b(toggle);
+        if toggle != result {
+            GameVariableManager::set_bool(EXP_KEY, result);
+            Self::set_command_text(this, None);
+            Self::set_help_text(this, None);
+            this.update_text();
+            return BasicMenuResult::se_cursor();
+        } else {return BasicMenuResult::new(); }
+    }
+    extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
+        let typeC =  GameVariableManager::get_bool(EXP_KEY);
+        if typeC == false {this.help_text = format!("Exp gain is set to normal.").into(); }
+        else {this.help_text = format!("Exp gain is scaled towards the player's average level.").into(); }
+    }
+    extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
+        let type_C =  GameVariableManager::get_bool(EXP_KEY);
+        if type_C { this.command_text = format!("Rubberband").into(); }
+        else { this.command_text = format!("Default").into(); }
+    }
+}
+#[skyline::from_offset(0x2b4afa0)]
+pub fn GetAverageLevel(difficulty: i32, sortieCount: i32, method_info: OptionalMethod) -> i32;
+
+#[skyline::hook(offset = 0x01a39f60)]
+pub fn normalizeExp(this: &Unit, exp: i32, method_info: OptionalMethod) -> i32 {
+    let typeC =  GameVariableManager::get_bool(EXP_KEY);
+    if typeC == false {
+        return call_original!(this, exp, method_info);
+    }
+    else { return exp; }
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 }
 
 //Rubberbanding function
 #[skyline::hook(offset = 0x01f7f360)]
 pub fn addExp(this: &mut UnitGrowSequence, method_info: OptionalMethod){
+<<<<<<< HEAD
     let typeC =  GameVariableManager::get_number(EXP_KEY);
     if typeC != 1 {
+=======
+    let typeC =  GameVariableManager::get_bool(EXP_KEY);
+    if typeC == false {
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
         call_original!(this, method_info); 
         return;
     }
@@ -174,6 +228,7 @@ pub fn addExp(this: &mut UnitGrowSequence, method_info: OptionalMethod){
         }
     }
 }
+<<<<<<< HEAD
 //Function that does the level up
 //#[skyline::from_offset(0x01a3a040)]
 //pub fn Unit_LevelUP(this: &Unit, abort: i32, method_info: OptionalMethod);
@@ -206,10 +261,23 @@ pub fn Unit_LevelUP(this: &Unit, abort: i32, method_info: OptionalMethod){
 pub fn LevelUp_Prepare(this: &LevelUpSequnece, method_info: OptionalMethod){
     let typeC =  GameVariableManager::get_number(EXP_KEY);
     if typeC == 0 || typeC == 2 {
+=======
+
+//Function that does the level up
+#[skyline::from_offset(0x01a3a040)]
+pub fn Unit_LevelUP(this: &Unit, abort: i32, method_info: OptionalMethod);
+
+//Function that prepares the window for level up. using this to call the level up function multiple times for multiple level up
+#[skyline::hook(offset=0x01be1260)]
+pub fn LevelUp_Prepare(this: &LevelUpSequnece, method_info: OptionalMethod){
+    let typeC =  GameVariableManager::get_bool(EXP_KEY);
+    if typeC == false {
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
         call_original!(this, method_info);
         return;
     }
     call_original!(this, method_info);
+<<<<<<< HEAD
     //println!("Level Up Prepare: unit lvl {}, grow level {}, level {}", this.m_unit.m_Level, this.m_grow.m_Level, this.m_level);
     if this.m_isClassChange {return; } //also used for class change, so return if class changed
 
@@ -217,11 +285,21 @@ pub fn LevelUp_Prepare(this: &LevelUpSequnece, method_info: OptionalMethod){
     let nLevelUps = (this.m_unit.m_Level as i32) - this.m_level - 1;
     if nLevelUps < 1 { return; }
     for x in 0..nLevelUps { unsafe { Unit_LevelUP(this.m_grow, 2, None); } }
+=======
+    println!("Level Up Prepare: unit lvl {}, grow level {}, level {}", this.m_unit.m_Level, this.m_grow.m_Level, this.m_level);
+    if this.m_isClassChange {return; }
+    let nLevelUps = (this.m_unit.m_Level as i32) - this.m_level - 1;
+    if nLevelUps < 1 { return; }
+    for x in 0..nLevelUps {
+        unsafe { Unit_LevelUP(this.m_grow, 2, None); }
+    }
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 }
 
 //rewrite the function that adds exp to the unit to allow multiple levels
 #[skyline::hook(offset=0x01a39d40)]
 pub fn unit_add_exp(this: &mut Unit, exp: i32, method_info: OptionalMethod){
+<<<<<<< HEAD
     let typeC =  GameVariableManager::get_number(EXP_KEY);
     if typeC == 0 || typeC == 2 {
         call_original!(this, exp, method_info); 
@@ -249,6 +327,25 @@ pub fn random_get_Game(method_info: OptionalMethod) -> &'static Random;
 #[skyline::from_offset(0x023751b0)]
 pub fn random_getMinMax(this: &Random, min: i32, max: i32, method_info: OptionalMethod) -> i32;
 
+=======
+    let typeC =  GameVariableManager::get_bool(EXP_KEY);
+    if typeC == false {
+        call_original!(this, exp, method_info); 
+        return;
+    }
+    let job = &this.m_Job;
+    let job_max_level = job.MaxLevel;
+    let mut expPool = exp + (this.m_Exp as i32);
+    let mut unit_level = this.m_Level;
+    while 99 < expPool && unit_level < job_max_level {
+        unit_level = unit_level + 1;
+        expPool = expPool - 100;
+    }
+    this.m_Level = unit_level;
+    if unit_level != job_max_level { this.m_Exp = expPool.try_into().unwrap(); }
+    else { this.m_Exp = 0; }
+}
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 
 #[no_mangle]
 extern "C" fn RNG() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<RNGMod>("RNG Rigging Mode") }

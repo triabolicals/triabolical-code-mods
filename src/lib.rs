@@ -2,7 +2,11 @@
 use skyline::patching::Patch;
 use unity::prelude::*;
 use unity::{il2cpp::class::Il2CppRGCTXData, prelude::*};
+<<<<<<< HEAD
 use engage::gamedata::{*, unit::*};
+=======
+use engage::gamedata::*;
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 use engage::gameuserdata::GameUserData;
 use engage::gameuserdata::*;
 use engage::gamevariable::GameVariableManager;
@@ -38,15 +42,25 @@ pub fn load_settings(this: &GameSaveData, stream: &Stream, method_info: Optional
     return value;
 }
 
+<<<<<<< HEAD
 #[skyline::main(name = "libtriabolical")]
 pub fn main() {
+=======
+
+#[skyline::main(name = "libtriabolical")]
+pub fn main() {
+
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
     //Enables support/bond viewing in maps and exploration
     let replace = &[0x1f, 0x25, 0x00, 0x71];
     Patch::in_text(0x0209950C).bytes(replace).unwrap();
     Patch::in_text(0x020994E0).bytes(replace).unwrap();
     Patch::in_text(0x02099538).bytes(replace).unwrap();
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
     // testing 0%
     cutscene::cutscene_install();
     support::support_install();
@@ -55,6 +69,7 @@ pub fn main() {
     level::level_install();
     rng::rng_install();
     cook::cook_install();
+<<<<<<< HEAD
     skyline::install_hooks!(cutscene::TryGiftEvent, cutscene::ChangeBGM, cutscene::ChangeBGM2, rng::Unit_LevelUP, load_settings, level::Set__Level, level::UnitInfo_SetLevel, hub::well_items, hub::hub_next_map, hub::NextGmap, rng::addExp, rng::normalizeExp, rng::LevelUp_Prepare, rng::unit_add_exp);
     println!("triabolical code mods are loaded");
 
@@ -80,4 +95,10 @@ pub fn main() {
             err_msg.as_str(),
         );
     }));
+=======
+    skyline::install_hooks!(load_settings, level::Set__Level, level::UnitInfo_SetLevel, hub::well_items, hub::hub_next_map, hub::NextGmap, rng::addExp, rng::normalizeExp, rng::LevelUp_Prepare, rng::unit_add_exp);
+    println!("triabolical code mods are loaded");
+    
+    
+>>>>>>> e2b5f3fd6e61426eeb2782af6f11aed4cdd66f91
 }
