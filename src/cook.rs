@@ -37,11 +37,11 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let type_C =  GameVariableManager::get_number(COOK_KEY);
         if type_C == 0 {this.help_text = format!("Dish titles are determined randomly.").into(); }
-        else if type_C == 5 { this.command_text = format!("Dish will have the 'Failure' title.").into(); }
-        else if type_C == 4 { this.command_text = format!("Dish will have the 'Ordinary' title.").into(); }
-        else if type_C == 3 { this.command_text = format!("Dish will have the Chief's 3rd dish title.").into();  }
-        else if type_C == 2 { this.command_text = format!("Dish will have the Chief's 2nd dish title.").into();  }
-        else if type_C == 1 { this.command_text = format!("Dish will have the Chief's 1st dish title.").into();  }
+        else if type_C == 5 { this.help_text = format!("Dish will have the 'Failure' title.").into(); }
+        else if type_C == 4 { this.help_text = format!("Dish will have the 'Ordinary' title.").into(); }
+        else if type_C == 3 { this.help_text = format!("Dish will have the Chief's 3rd dish title.").into();  }
+        else if type_C == 2 { this.help_text = format!("Dish will have the Chief's 2nd dish title.").into();  }
+        else if type_C == 1 { this.help_text = format!("Dish will have the Chief's 1st dish title.").into();  }
 
 
         this.help_text = format!("Forces cooking outcome.").into();
