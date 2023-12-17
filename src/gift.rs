@@ -22,9 +22,9 @@ impl ConfigBasicMenuItemSwitchMethods for Giftmod {
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_number(GIFT_KEY);
         if toggle == 0 { this.help_text = format!("Accept both patch and DLC gift items.").into(); } 
-        else if toggle == 1 { this.help_text = format!("Accept only patch items.").into(); } 
+        else if toggle == 1 { this.help_text = format!("Accept only patch update items.").into(); } 
         else if toggle == 2 { this.help_text = format!("Accept only paid DLC items.").into(); }
-        else if toggle == 3 { this.help_text = format!("Accept no gifts.").into(); }
+        else if toggle == 3 { this.help_text = format!("Accept no gift items.").into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_number(GIFT_KEY);
@@ -34,7 +34,6 @@ impl ConfigBasicMenuItemSwitchMethods for Giftmod {
         else if toggle == 3 { this.command_text = format!("No Gifts").into(); }
     }
 }
-
 #[skyline::hook(offset= 0x023f3c00)]
 pub fn TryGiftEvent(this: u64, flagName: &Il2CppString, rewardID: &Il2CppString, messageID: &Il2CppString, method_info: OptionalMethod){
     let toggle = GameVariableManager::get_number(GIFT_KEY);

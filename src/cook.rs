@@ -2,11 +2,9 @@ use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
-
 pub const COOK_KEY: &str = "G_CHIEF";
+
 pub struct CookMod;
-
-
 pub fn patchCook(){
     GameVariableManager::make_entry_norewind(COOK_KEY, 0);
     let result =  GameVariableManager::get_number(COOK_KEY);
@@ -19,7 +17,6 @@ pub fn patchCook(){
     else if result == 1 { replace = &[0x01, 0x00, 0x80, 0x52];}
     Patch::in_text(0x02544808).bytes(replace);
     Patch::in_text(0x02544edc).bytes(&[0x21, 0x00, 0x80, 0x52]);
-    println!("Chief is set to level {}", result);
 }
 
 impl ConfigBasicMenuItemSwitchMethods for CookMod {
@@ -39,12 +36,12 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let type_C =  GameVariableManager::get_number(COOK_KEY);
-        if type_C == 0 {this.help_text = format!("Cooking outcome is random.").into(); }
-        else if type_C == 5 { this.command_text = format!("Cooking will result in a failure.").into(); }
-        else if type_C == 4 { this.command_text = format!("Cooking will result in a non-title dish.").into(); }
-        else if type_C == 3 { this.command_text = format!("Cooking will result in the chief's 3rd cooking title.").into();  }
-        else if type_C == 2 { this.command_text = format!("Cooking will result in the chief's 2nd cooking title.").into();  }
-        else if type_C == 1 { this.command_text = format!("Cooking will result in the chief's 1st cooking title.").into();  }
+        if type_C == 0 {this.help_text = format!("Dish titles are determined randomly.").into(); }
+        else if type_C == 5 { this.command_text = format!("Dish will have the 'Failure' title.").into(); }
+        else if type_C == 4 { this.command_text = format!("Dish will have the 'Ordinary' title.").into(); }
+        else if type_C == 3 { this.command_text = format!("Dish will have the Chief's 3rd dish title.").into();  }
+        else if type_C == 2 { this.command_text = format!("Dish will have the Chief's 2nd dish title.").into();  }
+        else if type_C == 1 { this.command_text = format!("Dish will have the Chief's 1st dish title.").into();  }
 
 
         this.help_text = format!("Forces cooking outcome.").into();
@@ -54,9 +51,9 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
         if type_C == 0 {this.command_text = format!("Default").into(); }
         else if type_C == 5 { this.command_text = format!("Failure").into(); }
         else if type_C == 4 { this.command_text = format!("Ordinary").into(); }
-        else if type_C == 3 { this.command_text = format!("Cooking Title 3").into();  }
-        else if type_C == 2 { this.command_text = format!("Cooking Title 2").into();  }
-        else if type_C == 1 { this.command_text = format!("Cooking Title 1").into();  }
+        else if type_C == 3 { this.command_text = format!("Dish Title 3").into();  }
+        else if type_C == 2 { this.command_text = format!("Dish Title 2").into();  }
+        else if type_C == 1 { this.command_text = format!("Dish Title 1").into();  }
     }
 }
 #[no_mangle]
