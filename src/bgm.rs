@@ -30,11 +30,23 @@ impl ConfigBasicMenuItemSwitchMethods for BGMmod {
     }
 }
 
+#[unity::class("App", "FieldBgmManager")]
+pub struct FieldBgmManager {
+    junk: [u64; 13],
+    pub m_BattleBgmContinueTurn: i32,
+}
+
+
 //Force BGM to player phase
 #[skyline::hook(offset=0x02d56700)]
 pub fn ChangeBGM(this: u64, forceType: i32, proc: u64, isTurn: bool, method_info: OptionalMethod) {
     let toggle = GameVariableManager::get_bool(BGM_KEY);
-    if toggle { call_original!(this, 0, proc, isTurn, method_info) }
+    if toggle { 
+        // to not count non-player phase changes against the special bgm turn count
+        if forceType == 0 { call_original!(this, 0, proc, isTurn, method_info); }
+        else { call_original!(this, 0, proc, false, method_info);  }
+
+    }
     else { call_original!(this, forceType, proc, isTurn,method_info) }
 }
 //For Time Crystals Phase Change
@@ -46,5 +58,17 @@ pub fn ChangeBGM2(this: u64, forceType: i32, method_info: OptionalMethod) {
     else { call_original!(this, forceType, method_info) }
 }
 
+#[skyline::hook(offset=0x01dde130)]
+pub fn FieldBgmSpecialTurn(turn :i32, method_info: OptionalMethod){
+    println!("Field Bgm Special Turn called: {}", turn);
+    call_original!(turn, method_info);
+}
+#[skyline::hook(offset=0x02d54fb0)]
+pub fn startSpecialBattleBgmContinueTurn(this: &mut FieldBgmManager, method_info: OptionalMethod){
+    println!("Start Field Bgm Continue Turn Called: {}", this.m_BattleBgmContinueTurn);
+    this.m_BattleBgmContinueTurn = 1;
+    call_original!(this, method_info);
+    
+}
 extern "C" fn bgm() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<BGMmod>("Battle BGM Settings") }
 pub fn bgm_install(){ cobapi::install_game_setting(bgm); }
