@@ -1,0 +1,202 @@
+use skyline::patching::Patch;
+use unity::prelude::*;
+use crate::level::*;
+use engage::gamedata::person::SkillArray;
+use engage::gamedata::item::ItemData;
+use engage::gamedata::{*, unit::*};
+use engage::{gamevariable::*,gamedata::*};
+
+pub const MID_STATS : &[&str] = &["MID_SYS_HP", "MID_SYS_Str", "MID_SYS_Tec", "MID_SYS_Spd", "MID_SYS_Lck", "MID_SYS_Def", "MID_SYS_Mag", "MID_SYS_Res"];
+pub const EFFECTIVE_SIDS : &[&str] = &["SID_馬特効", "SID_鎧特効", "SID_飛行特効", "SID_竜特効", "SID_邪竜特効", "SID_異形特効" ];
+#[skyline::from_offset(0x01bdbc80)]
+pub fn get_lang(method_info: OptionalMethod) -> i32;
+
+#[skyline::from_offset(0x037713e0)]
+pub fn concat_strings(str0: &Il2CppString, str1: &Il2CppString,method_info: OptionalMethod) -> &'static Il2CppString;
+
+#[skyline::from_offset(0x037721c0)]
+pub fn concat_strings3(str0: &Il2CppString, str1: &Il2CppString, str2: &Il2CppString,method_info: OptionalMethod) -> &'static Il2CppString;
+
+#[skyline::from_offset(0x037727b0)]
+pub fn concat_strings4(str0: &Il2CppString, str1: &Il2CppString, str2: &Il2CppString, str3: &Il2CppString, method_info: OptionalMethod) -> &'static Il2CppString;
+
+#[skyline::from_offset(0x025c923c)]
+pub fn Mess_Get(label: &Il2CppString, method_info: OptionalMethod) -> &Il2CppString;
+
+#[skyline::from_offset(0x025d4410)]
+pub fn Mess_Get2(label: &Il2CppString, arg0: &Il2CppString, method_info: OptionalMethod) -> &'static Il2CppString;
+#[skyline::from_offset(0x03784a20)]
+pub fn to_lower(this: &Il2CppString, method_info: OptionalMethod) -> &'static Il2CppString;
+
+#[skyline::from_offset(0x025d77c0)]
+pub fn Mess_SetArgument(index: i32, value: &Il2CppString, method_info: OptionalMethod); 
+
+#[skyline::from_offset(0x025d3e40)]
+pub fn Mess_Load(value: &Il2CppString, method_info: OptionalMethod) -> bool;
+
+#[skyline::from_offset(0x3780700)]
+pub fn is_null_empty(this: &Il2CppString, method_info: OptionalMethod) -> bool;
+
+#[skyline::from_offset(0x028316d0)]
+pub fn TMP_Text_get_text(this: &TextMeshProUGUI, method_info: OptionalMethod) -> &'static Il2CppString;
+
+#[skyline::from_offset(0x028317d0)]
+pub fn TMP_Text_set_text(this: &TextMeshProUGUI, value: &Il2CppString, method_info: OptionalMethod);
+
+#[skyline::from_offset(0x0215a8b0)]
+pub fn HelpParamSetter_SetFixedText(this: &HelpParamSetter, frame: u64, text: &Il2CppString, method_info: OptionalMethod);
+
+#[skyline::from_offset(0x02487990)]
+pub fn skillarray_find(this: &SkillArray, sid: &Il2CppString, method_info: OptionalMethod) -> Option<&'static SkillData>;
+
+#[unity::from_offset("App", "UnitItem", "GetPower")]
+pub fn UnitItem_GetPower(this: &UnitItem, method_info: OptionalMethod) -> i32;
+
+#[unity::from_offset("App", "UnitItem", "GetEquipSkills")]
+pub fn UnitItem_GetEquipSkills(this: &UnitItem, method_info: OptionalMethod) -> Option<&SkillArray>;
+
+#[skyline::from_offset(0x01a35520)]
+pub fn Unit_has_skill(this: &Unit, sid: &SkillData, method_info: OptionalMethod) -> bool;
+// MID_SYS_Mt
+#[unity::class("App", "HelpParamSetter")]
+pub struct HelpParamSetter {
+    junk : [u8; 0x50],
+    pub m_TitleAtk: &'static TextMeshProUGUI,
+    pub m_ValueAtk: &'static TextMeshProUGUI,
+    junk2 : [u64; 18],
+    pub m_ContextsText: &'static TextMeshProUGUI,
+}
+
+pub fn check_effectiveness(item: &UnitItem) -> i32 {
+    unsafe {
+        let skill = UnitItem_GetEquipSkills(item, None);
+        if skill.is_some() {
+            for sid in EFFECTIVE_SIDS {
+                if skillarray_find(skill.unwrap(), sid.into(), None).is_some() {
+                    let eff = skillarray_find(skill.unwrap(), sid.into(), None).unwrap().efficacy_value;
+                    println!("Effective Value: {}", eff);
+                    return eff;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+pub fn check_effectiveness_skills(skills: &SkillArray) -> i32 {
+    unsafe {
+        for sid in EFFECTIVE_SIDS {
+            let skill_data = skillarray_find(skills, sid.into(), None);
+            if skill_data.is_some() {
+                let eff = skill_data.unwrap().efficacy_value;
+                println!("Effective Value: {}, {}", eff, skill_data.unwrap().name.get_string().unwrap());
+                return eff;
+            }
+        }
+    }
+    return 0;
+}
+pub fn check_effectiveness_unit(unit: &Unit) -> i32 {
+    unsafe {
+        for sid in EFFECTIVE_SIDS {
+            let skill = SkillData::get(sid);
+            if skill.is_some() {
+                if Unit_has_skill(unit, skill.unwrap(), None) {
+                    let eff = skill.unwrap().efficacy_value;
+                    println!("Effective Value: {}, {}", eff, skill.unwrap().name.get_string().unwrap());
+                    return eff;
+                 }
+            }
+        }
+    }
+    return 0;
+}
+
+#[unity::hook("App","HelpParamSetter", "SetItemData")]
+pub fn HelpParamSetter_SetItemData(this: &HelpParamSetter, frame: u64, data: Option<&ItemData>, unit: &Unit, god: &GodUnit, ring: u64, endurance: i32, item: Option<&UnitItem>, isUseEnchant: bool, method_info: OptionalMethod){
+    call_original!(this, frame, data, unit, god, ring, endurance, item, isUseEnchant, method_info);
+    if data.is_some() && item.is_some() {
+        if data.unwrap().usetype == 1  {
+            unsafe {
+                let power = UnitItem_GetPower(item.unwrap(), None);
+                let power0: i32  = data.unwrap().power.into();
+                let text = TMP_Text_get_text(&this.m_ContextsText, None);
+                let mut power_string: &Il2CppString = format!(": {}\n", power0).into();
+                if power < power0 { power_string = format!(": {} ({})\n", power, power-power0).into();  }
+                else if power0 < power { power_string = format!(": {} (+{})\n", power, power-power0).into(); }
+
+                let might_str = concat_strings(get_mess_str("MID_SYS_Mt"), power_string, None);
+                let mut eff = check_effectiveness(item.unwrap());
+                if eff == 0 {
+                    eff = check_effectiveness_unit(unit);
+                }
+                if eff != 0 {
+                    let atk_type = TMP_Text_get_text(&this.m_TitleAtk, None);
+                    let atk_value = TMP_Text_get_text(&this.m_ValueAtk, None).get_string().unwrap();
+                    let atk: Result<i32, _> = atk_value.parse();
+                    if atk.is_ok() {
+                        let effective_atk = (eff-1)*power + ( atk.unwrap() as i32 );
+                        power_string = format!(" {}: {}\n", atk_type.get_string().unwrap(), effective_atk).into();
+                        let final_str = concat_strings4(might_str, get_mess_str("MID_SYS_Eff"), power_string, text, None);
+                        TMP_Text_set_text(&this.m_ContextsText, final_str, None);
+                        return;
+                    }
+                }
+                let final_str = concat_strings(might_str, text, None);
+                TMP_Text_set_text(&this.m_ContextsText, final_str, None);
+            }
+        }
+    }
+}
+pub fn get_mess_str(string: &str) -> &Il2CppString {
+    unsafe { Mess_Get(string.into(), None) }
+}
+pub fn On_str() -> &'static Il2CppString {
+    unsafe { Mess_Get("MID_CONFIG_TUTORIAL_ON".into(), None) }
+}
+pub fn Off_str() -> &'static Il2CppString {
+    unsafe { Mess_Get("MID_CONFIG_TUTORIAL_OFF".into(), None) }
+}
+// Jan English (US), Spanish(LA), English (EUR), Spanish (Eur), Franch, Itlalian, German, Simply Chinese, Traditional Chinese, Korean
+pub fn setting_str(string: &str) -> &'static Il2CppString  {
+    unsafe {
+        let lang = get_lang(None);
+        let mess = Mess_Get(string.into(), None);
+        let config = Mess_Get("MID_MENU_CONFIG".into(), None);
+        match lang {
+            //English (US)
+            1|3|10 => { return concat_strings3(mess, " ".into(),  config, None); },
+            //Spanish (AM)
+            2|4|5 => { return concat_strings3(config, " de ".into(), mess, None); },
+            //Italian
+            6 => { return concat_strings3(config, " del ".into(), mess, None); }
+            //German
+            7 => { return  concat_strings(mess, to_lower(config, None), None); }
+            //Sim Chinese
+            _ => { return concat_strings3(mess, " ".into(),  config, None); }
+        }
+    }
+}
+pub fn get_stat_with_value(index: usize, value: i8) -> &'static Il2CppString {
+    unsafe {
+        if value < 0 {
+            let value_str: &Il2CppString = format!("{}", value).into();
+            let stat_str = get_mess_str(MID_STATS[index]);
+            return concat_strings(stat_str, value_str, None);
+        }
+        else {
+            let value_str: &Il2CppString = format!("+{}", value).into();
+            let stat_str = get_mess_str(MID_STATS[index]);
+            return concat_strings(stat_str, value_str, None);
+
+        }
+    }  
+}
+pub fn pid_to_name(pid: &Il2CppString ) -> &'static Il2CppString {
+
+    let person = PersonData::get(&pid.get_string().unwrap());
+    if person.is_some() {
+        unsafe { return Mess_Get(person.unwrap().name, None); }
+    }
+    else { return "???".into(); } 
+}

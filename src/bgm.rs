@@ -2,33 +2,10 @@ use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
+use crate::string::*;
 pub const BGM_KEY: &str = "G_BGM";
 
-pub struct BGMmod;
-impl ConfigBasicMenuItemSwitchMethods for BGMmod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry_norewind(BGM_KEY, 0);}
-    extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
-        let toggle = GameVariableManager::get_bool(BGM_KEY);
-        let result = ConfigBasicMenuItem::change_key_value_b(toggle);
-        if toggle != result {
-            GameVariableManager::set_bool(BGM_KEY, result );
-            Self::set_command_text(this, None);
-            Self::set_help_text(this, None);
-            this.update_text();
-            return BasicMenuResult::se_cursor();
-        } else {return BasicMenuResult::new(); }
-    }
-    extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let toggle = GameVariableManager::get_bool(BGM_KEY);
-        if (toggle) { this.help_text = format!("Player phase BGM overrides other phase BGM.").into(); } 
-        else { this.help_text = format!("Default BGM Setting").into(); }
-    }
-    extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let toggle = GameVariableManager::get_bool(BGM_KEY);
-        if (toggle) { this.command_text = format!("Skip Enemy/Ally Phase").into();} 
-        else { this.command_text = format!("Default").into(); }
-    }
-}
+
 
 #[unity::class("App", "FieldBgmManager")]
 pub struct FieldBgmManager {
@@ -60,7 +37,6 @@ pub fn ChangeBGM2(this: u64, forceType: i32, method_info: OptionalMethod) {
 
 #[skyline::hook(offset=0x01dde130)]
 pub fn FieldBgmSpecialTurn(turn :i32, method_info: OptionalMethod){
-    println!("Field Bgm Special Turn called: {}", turn);
     call_original!(turn, method_info);
 }
 #[skyline::hook(offset=0x02d54fb0)]
@@ -68,7 +44,54 @@ pub fn startSpecialBattleBgmContinueTurn(this: &mut FieldBgmManager, method_info
     println!("Start Field Bgm Continue Turn Called: {}", this.m_BattleBgmContinueTurn);
     this.m_BattleBgmContinueTurn = 1;
     call_original!(this, method_info);
-    
 }
-extern "C" fn bgm() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<BGMmod>("Battle BGM Settings") }
-pub fn bgm_install(){ cobapi::install_game_setting(bgm); }
+#[skyline::hook(offset=0x0228d210)]
+pub fn bgmHook(forceType: i32, _super: u64, method_info: OptionalMethod){
+    if GameVariableManager::get_bool(BGM_KEY) {
+        if forceType != 0 { return; }
+    }
+    call_original!(forceType, _super, method_info);
+}
+
+pub fn patch_bgm(){
+    /* 
+    if GameVariableManager::get_number(BGM_KEY) == 1 {
+        Patch::in_text(0x0236c8bc).bytes(&[0xC0, 0x03, 0x5F, 0xD6]);
+    }
+    else {
+        Patch::in_text(0x0236c8bc).bytes(&[0x55, 0x82, 0xFC, 0x17]);
+    }
+    
+*/
+}
+pub struct bgmmod;
+impl ConfigBasicMenuItemSwitchMethods for bgmmod {
+    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(BGM_KEY, 0); }
+    extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
+        GameVariableManager::make_entry(BGM_KEY, 0); 
+        let toggle =  GameVariableManager::get_number(BGM_KEY);
+        let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 1, 1);
+        if toggle != result {
+            GameVariableManager::set_number(BGM_KEY, result );
+            Self::set_command_text(this, None);
+            Self::set_help_text(this, None);
+            this.update_text();
+            patch_bgm();
+            return BasicMenuResult::se_cursor();
+        } else {return BasicMenuResult::new(); }
+    }
+    extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
+        if GameVariableManager::get_number(BGM_KEY) == 1 { this.help_text = format!("Player phase BGM overrides other phase BGM.").into(); } 
+        else { this.help_text = format!("Default BGM Setting").into(); }
+    }
+    extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
+        let toggle = GameVariableManager::get_bool(BGM_KEY);
+        if GameVariableManager::get_number(BGM_KEY) == 1 { this.command_text = On_str();} 
+        else { this.command_text = Off_str(); }
+    }
+}
+extern "C" fn bgm_switch() -> &'static mut ConfigBasicMenuItem { 
+    let str0 = get_mess_str("MID_CONFIG_BGM_CHANGE_ENEMYTURN");
+    ConfigBasicMenuItem::new_switch::<bgmmod>(str0.get_string().unwrap())
+ }
+pub fn bgm_install(){ cobapi::install_game_setting(bgm_switch); }

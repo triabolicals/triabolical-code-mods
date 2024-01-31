@@ -2,6 +2,7 @@ use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
+use crate::string::*;
 pub const CUTSCENES_KEY: &str = "G_CUTSCENE";
 
 pub struct CutsceneMod;
@@ -23,6 +24,7 @@ pub fn patchCutscenes(){
 impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
     fn init_content(this: &mut ConfigBasicMenuItem){  patchCutscenes(); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
+        GameVariableManager::make_entry(CUTSCENES_KEY, 0);
         let toggle = GameVariableManager::get_bool(CUTSCENES_KEY);
         let result = ConfigBasicMenuItem::change_key_value_b(toggle);
         if toggle != result {
@@ -41,8 +43,8 @@ impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_bool(CUTSCENES_KEY);
-        if (toggle) { this.command_text = format!("On").into();} 
-        else { this.command_text = format!("Off").into(); }
+        if (toggle) { this.command_text = On_str();} 
+        else { this.command_text =  Off_str(); }
     }
 }
 

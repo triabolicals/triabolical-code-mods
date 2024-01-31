@@ -2,6 +2,7 @@ use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
+use crate::string::*;
 pub const SUPPORT_KEY: &str = "G_SUPPORT_TYPE";
 
 pub fn patchSupport() {
@@ -54,18 +55,23 @@ impl ConfigBasicMenuItemSwitchMethods for SupportMod {
         else {this.help_text = format!("Unknown Setting").into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
+        unsafe {
         let typeC =  GameVariableManager::get_number(SUPPORT_KEY);
-        if typeC == 0 {this.command_text = format!("Off").into(); }
-        else if typeC == 1 { this.command_text = format!("Bond Only").into(); }
-        else if typeC == 2 { this.command_text = format!("Support Only").into(); }
-        else if typeC == 3 { this.command_text = format!("Bond and Support").into();  }
+        if typeC == 0 {this.command_text = Off_str(); }
+        else if typeC == 1 { this.command_text = get_mess_str("MID_MENU_Recall_GodReliance_Unit"); }
+        else if typeC == 2 { this.command_text = get_mess_str("MID_MENU_Recall_Reliance_Unit"); }
+        else if typeC == 3 { this.command_text = concat_strings3(get_mess_str("MID_MENU_Recall_Reliance_Unit"), " / ".into(), get_mess_str("MID_MENU_Recall_GodReliance_Unit"), None ); }
         else {this.help_text = format!("Unknown").into(); }
     }
+}
 }
 
 #[no_mangle]
 extern "C" fn supports() -> &'static mut ConfigBasicMenuItem { 
-    ConfigBasicMenuItem::new_switch::<SupportMod>("Skip Bond/Support Conversations")
+    unsafe {
+    let label = concat_strings3(get_mess_str("MID_MENU_Recall_Reliance_Unit"), " / ".into(), get_mess_str("MID_MENU_Recall_GodReliance_Unit"), None ); 
+    ConfigBasicMenuItem::new_switch::<SupportMod>(concat_strings("Skip ".into(), label, None).get_string().unwrap())
+    }
  }
 
 pub fn support_install(){

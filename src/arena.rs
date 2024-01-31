@@ -2,6 +2,7 @@ use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
+use crate::string::*;
 
 pub const ARENA_KEY: &str = "G_ARENA_SKIP";
 pub struct ArenaMod;
@@ -13,9 +14,16 @@ pub fn patchArena(){
         let set_return = &[0xC0, 0x03, 0x5F, 0xD6];
         let set_nop =  &[0x1F,0x20,0x03,0xD5];
 
+        // App.ArenaOrderSequence$$StartTraining         
         Patch::in_text(0x01caa414).bytes(&[0x20,0x00, 0x80, 0x52]).unwrap();
+
+        // bool Combat.ArenaCombatSequence.<Grow2>d__36$$MoveNext
         Patch::in_text(0x01bac5d0).bytes(set_nop).unwrap();
+        Patch::in_text(0x01bac6bc).bytes(set_nop).unwrap();
+
+        // App.ArenaOrderSequence$$BackgroundIn
         Patch::in_text(0x01ca6f40).bytes(set_return).unwrap();
+        // App.ArenaOrderSequence$$BackgroundOut
         Patch::in_text(0x01ca6ff0).bytes(set_return).unwrap();
 
         Patch::in_text(0x01bacb40).bytes(set_false).unwrap();
@@ -33,18 +41,25 @@ pub fn patchArena(){
         Patch::in_text(0x01bab900).bytes(set_false).unwrap();
         Patch::in_text(0x01bab904).bytes(set_return).unwrap();
 
-        Patch::in_text(0x01bac6bc).bytes(set_nop).unwrap();
+        // App.ArenaOrderSequence$$SetupTraining
+        Patch::in_text(0x01caa2d8).bytes(set_nop).unwrap();
         Patch::in_text(0x01caa2ac).bytes(set_nop).unwrap();
         Patch::in_text(0x01caa2c0).bytes(set_nop).unwrap();
 
-        Patch::in_text(0x01caa2d8).bytes(set_nop).unwrap();
+        // App.ArenaOrderSequence$$FinishTraining
         Patch::in_text(0x01caa5bc).bytes(set_nop).unwrap();
         Patch::in_text(0x01caa5d0).bytes(set_nop).unwrap();
         Patch::in_text(0x01caa5e4).bytes(set_nop).unwrap();
 
-        Patch::in_text(0x01ca616c).bytes(&[0x60,0x00, 0x80, 0x52]).unwrap();
-        Patch::in_text(0x01ca6124).bytes(&[0x00,0x10, 0x20, 0x1E]).unwrap();
-        Patch::in_text(0x01ca64c8).bytes(&[0xE1,0x03, 0x1F, 0xAA]).unwrap();
+        // App.ArenaOrderSequence$$CreateBind
+        Patch::in_text(0x01ca616c).bytes(&[0x60,0x00, 0x80, 0x52]).unwrap();    // App.Fade$$FadeWait(3)
+        Patch::in_text(0x01ca6124).bytes(&[0x00,0x10, 0x20, 0x1E]).unwrap();    //App.Fade$$BlackOut(0.0, 4)
+
+        //BlackIn/BlackOut duration to 0
+        Patch::in_text(0x01ca6484).bytes(&[0xE0,0x03, 0x27, 0x1E]).unwrap();
+        Patch::in_text(0x01ca6124).bytes(&[0xE0,0x03, 0x27, 0x1E]).unwrap();
+        
+        Patch::in_text(0x01ca67b0).nop();
         println!("Arena battles are skipped");
     }
     else {
@@ -72,6 +87,7 @@ pub fn patchArena(){
         Patch::in_text(0x01ca616c).bytes(&[0x80 , 0x00 , 0x80 , 0x52]).unwrap();
         Patch::in_text(0x01ca6124).bytes(&[0x00 , 0x10 , 0x2e , 0x1e]).unwrap();
         Patch::in_text(0x01ca64c8).bytes(&[0xe1 , 0x03 , 0x16 , 0xaa]).unwrap();
+        Patch::in_text(0x01ca6484).bytes(&[0x00 , 0x10 , 0x2e , 0x1e]).unwrap();
         println!("Arena battles are not skipped");
     }
 }
@@ -80,6 +96,7 @@ impl ConfigBasicMenuItemSwitchMethods for ArenaMod {
         patchArena();
     }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
+        GameVariableManager::make_entry(ARENA_KEY, 0);
         let active = GameVariableManager::get_bool(ARENA_KEY);
         let result = ConfigBasicMenuItem::change_key_value_b(active);
 
@@ -99,12 +116,20 @@ impl ConfigBasicMenuItemSwitchMethods for ArenaMod {
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let active = GameVariableManager::get_bool(ARENA_KEY);
-        if (active) { this.command_text = format!("On").into();} 
-        else { this.command_text = format!("Off").into(); }
+        unsafe {
+            if !active { this.command_text = On_str(); }
+            else { this.command_text = Off_str(); }
+        }
+
     }
 }
 #[no_mangle]
-extern "C" fn arena() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<ArenaMod>("Skip Arena Battles") }
+extern "C" fn arena() -> &'static mut ConfigBasicMenuItem { 
+    unsafe {
+        let str0 = concat_strings3(get_mess_str("MID_Hub_Arena"), " ".into(), get_mess_str("MID_CONFIG_COMBATANIME"), None);
+        ConfigBasicMenuItem::new_switch::<ArenaMod>(str0.get_string().unwrap()) 
+    }
+}
 
 
 pub fn arena_install(){

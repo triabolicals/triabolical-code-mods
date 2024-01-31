@@ -5,6 +5,28 @@ use engage::gamevariable::*;
 
 pub const GIFT_KEY: &str = "G_GIFT";
 
+pub fn patch_gift(){
+    Patch::in_text(0x023f3f18).bytes(&[0x3a,0xff,0xff,0x17]);   //DLC0
+    Patch::in_text(0x023f3fc8).bytes(&[0x0e,0xff,0xff,0x17]);   //Patch0
+    Patch::in_text(0x023f4088).bytes(&[0xde,0xfe,0xff,0x17]);   //DLC1
+    Patch::in_text(0x023f4138).bytes(&[0xb2,0xfe,0xff, 0x17]);  //Patch3
+    let ret = &[0xC0, 0x03, 0x5F, 0xD6];
+    if GameVariableManager::get_number(GIFT_KEY) == 1 {
+        Patch::in_text(0x023f3f18).bytes(ret);
+        Patch::in_text(0x023f4088).bytes(ret);
+    }
+    else if GameVariableManager::get_number(GIFT_KEY) == 2 {
+        Patch::in_text(0x023f3fc8).bytes(ret);
+        Patch::in_text(0x023f4138).bytes(ret);
+    }
+    else if GameVariableManager::get_number(GIFT_KEY) == 3 {
+        Patch::in_text(0x023f3f18).bytes(ret);
+        Patch::in_text(0x023f4088).bytes(ret);
+        Patch::in_text(0x023f3fc8).bytes(ret);
+        Patch::in_text(0x023f4138).bytes(ret);
+    }
+}
+
 pub struct Giftmod;
 impl ConfigBasicMenuItemSwitchMethods for Giftmod {
     fn init_content(this: &mut ConfigBasicMenuItem){  GameVariableManager::make_entry_norewind(GIFT_KEY, 0); }
@@ -15,6 +37,7 @@ impl ConfigBasicMenuItemSwitchMethods for Giftmod {
             GameVariableManager::set_number(GIFT_KEY, result );
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
+            patch_gift();
             this.update_text();
             return BasicMenuResult::se_cursor();
         } else {return BasicMenuResult::new(); }
@@ -33,22 +56,6 @@ impl ConfigBasicMenuItemSwitchMethods for Giftmod {
         else if toggle == 2 { this.command_text = format!("Expansion Pass Gifts").into(); }
         else if toggle == 3 { this.command_text = format!("No Gifts").into(); }
     }
-}
-#[skyline::hook(offset= 0x023f3c00)]
-pub fn TryGiftEvent(this: u64, flagName: &Il2CppString, rewardID: &Il2CppString, messageID: &Il2CppString, method_info: OptionalMethod){
-    let toggle = GameVariableManager::get_number(GIFT_KEY);
-    if toggle == 0{ call_original!(this, flagName, rewardID, messageID, method_info); }
-    else if toggle == 1 {
-        if messageID.get_string().unwrap() == "MID_MSG_GET_ITEM_DLC_Accessory1" {return; }
-        if messageID.get_string().unwrap() == "MID_MSG_GET_ITEM_DLC_Accessory2" {return; }
-        call_original!(this, flagName, rewardID, messageID, method_info);
-    }
-    else if toggle == 2 {
-        if messageID.get_string().unwrap() == "MID_MSG_GET_ITEM_Patch0" {return; }
-        if messageID.get_string().unwrap() == "MID_MSG_GET_ITEM_Patch3" {return; }
-        call_original!(this, flagName, rewardID, messageID, method_info);
-    }
-    else { return;  }
 }
 extern "C" fn gift() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<Giftmod>("Gift Options") }
 
