@@ -29,7 +29,7 @@ pub fn patchMap(){
 }
 pub struct MapMod;
 impl ConfigBasicMenuItemSwitchMethods for MapMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ patchMap(); }
+    fn init_content(this: &mut ConfigBasicMenuItem){ }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle =  GameVariableManager::get_number(MAP_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 3, 1);
@@ -44,17 +44,17 @@ impl ConfigBasicMenuItemSwitchMethods for MapMod {
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let active  =  GameVariableManager::get_number(MAP_KEY);
-        if active == 0 { this.help_text = format!("Enables map dialogue and tutorials.").into(); } 
-        else if active == 1 { this.help_text = format!("Skips in-map tutorials.").into(); }
-        else if active == 2 { this.help_text = format!("Skips in-map dialogue.").into(); }
-        else if active == 3 { this.help_text = format!("Skips in-map tutorials and dialogue.").into(); }
+        if active == 0 { this.help_text = "Enables map dialogue and tutorials.".into(); } 
+        else if active == 1 { this.help_text = "Skips in-map tutorials.".into(); }
+        else if active == 2 { this.help_text = "Skips in-map dialogue.".into(); }
+        else if active == 3 { this.help_text = "Skips in-map tutorials and dialogue.".into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let active  =  GameVariableManager::get_number(MAP_KEY);
-        if active == 0 { this.command_text = format!("Off").into(); } 
-        else if active == 1 { this.command_text = format!("Tutorials Only").into(); }
-        else if active == 2 { this.command_text = format!("Dialogue Only").into(); }
-        else if active == 3 { this.command_text = format!("Tutorials/Dialogue").into(); }
+        if active == 0 { this.command_text = "Off".into(); } 
+        else if active == 1 { this.command_text = "Tutorials Only".into(); }
+        else if active == 2 { this.command_text = "Dialogue Only".into(); }
+        else if active == 3 { this.command_text = "Tutorials/Dialogue".into(); }
     }
 }
 

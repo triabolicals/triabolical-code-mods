@@ -11,10 +11,10 @@ use crate::string::*;
 //Character mod
 pub const CHARACTER_KEY: &str = "G_CHARACTER";
 pub static mut setPerson: bool = false;
-pub const NameArray : &[&str] = &["MPID_Lueur", "MPID_Vandre", "MPID_Clan", "MPID_Fram", "MPID_Alfred", "MPID_Etie", "MPID_Boucheron", "MPID_Celine", "MPID_Chloe", "MPID_Louis", "MPID_Yunaka", "MPID_Staluke", "MPID_Citrinica", "MPID_Lapis", "MPID_Diamand", "MPID_Umber", "MPID_Jade", "MPID_Ivy", "MPID_Kagetsu", "MPID_Zelkova", "MPID_Fogato", "MPID_Pandoro", "MPID_Bonet", "MPID_Misutira", "MPID_Panetone", "MPID_Merin", "MPID_Hortensia", "MPID_Seadas", "MPID_Rosado", "MPID_Goldmary", "MPID_Linden", "MPID_Saphir", "MPID_Veyre", "MPID_Mauve", "MPID_Anna", "MPID_Jean" ];
+pub const NameArray : &[&str] = &["MPID_Lueur", "MPID_Vandre", "MPID_Clan", "MPID_Fram", "MPID_Alfred", "MPID_Etie", "MPID_Boucheron", "MPID_Celine", "MPID_Chloe", "MPID_Louis", "MPID_Yunaka", "MPID_Staluke", "MPID_Citrinica", "MPID_Lapis", "MPID_Diamand", "MPID_Umber", "MPID_Jade", "MPID_Ivy", "MPID_Kagetsu", "MPID_Zelkova", "MPID_Fogato", "MPID_Pandoro", "MPID_Bonet", "MPID_Misutira", "MPID_Panetone", "MPID_Merin", "MPID_Hortensia", "MPID_Seadas", "MPID_Rosado", "MPID_Goldmary", "MPID_Linden", "MPID_Saphir", "MPID_Veyre", "MPID_Mauve", "MPID_Anna", "MPID_Jean", "MPID_El", "MPID_Rafale", "MPID_Selestia", "MPID_Gregory", "MPID_Madeline"];
 pub const OptionArray : &[&str] = &["None", "Vander", "Clanne", "Framme", "Alfred", "Etie", "Boucheron", "Céline", "Chloé", "Louis", "Yunaka", "Alcryst", "Citrinne", "Lapis", "Diamant", "Amber", "Jade", "Ivy", "Kagetsu", "Zelkov", "Fogato", "Pandero", "Bunet", "Timerra", "Panette", "Merrin", "Hortensia", "Seadall", "Rosado", "Goldmary", "Linden", "Saphir", "Veyle", "Mauvier", "Anna", "Jean"];
-pub const HelpArray : &[&str] = &["MPID_H_Lueur", "MPID_H_Vandre", "MPID_H_Clan", "MPID_H_Fram", "MPID_H_Alfred", "MPID_H_Etie", "MPID_H_Boucheron", "MPID_H_Celine", "MPID_H_Chloe", "MPID_H_Louis", "MPID_H_Yunaka", "MPID_H_Staluke", "MPID_H_Citrinica", "MPID_H_Lapis", "MPID_H_Diamand", "MPID_H_Umber", "MPID_H_Jade", "MPID_H_Ivy", "MPID_H_Kagetsu", "MPID_H_Zelkova", "MPID_H_Fogato", "MPID_H_Pandoro", "MPID_H_Bonet", "MPID_H_Misutira", "MPID_H_Panetone", "MPID_H_Merin", "MPID_H_Hortensia", "MPID_H_Seadas", "MPID_H_Rosado", "MPID_H_Goldmary", "MPID_H_Linden", "MPID_H_Saphir", "MPID_H_Veyre", "MPID_H_Mauve", "MPID_H_Anna", "MPID_H_Jean" ];
-pub const PIDArray : &[&str] = &["PID_リュール", "PID_ヴァンドレ", "PID_クラン", "PID_フラン", "PID_アルフレッド", "PID_エーティエ", "PID_ブシュロン", "PID_セリーヌ", "PID_クロエ", "PID_ルイ", "PID_ユナカ", "PID_スタルーク", "PID_シトリニカ", "PID_ラピス", "PID_ディアマンド", "PID_アンバー", "PID_ジェーデ", "PID_アイビー", "PID_カゲツ", "PID_ゼルコバ", "PID_フォガート", "PID_パンドロ", "PID_ボネ", "PID_ミスティラ", "PID_パネトネ", "PID_メリン", "PID_オルテンシア", "PID_セアダス", "PID_ロサード", "PID_ゴルドマリー", "PID_リンデン", "PID_ザフィーア", "PID_ヴェイル", "PID_モーヴ", "PID_アンナ", "PID_ジャン"];
+pub const HelpArray : &[&str] = &["MPID_H_Lueur", "MPID_H_Vandre", "MPID_H_Clan", "MPID_H_Fram", "MPID_H_Alfred", "MPID_H_Etie", "MPID_H_Boucheron", "MPID_H_Celine", "MPID_H_Chloe", "MPID_H_Louis", "MPID_H_Yunaka", "MPID_H_Staluke", "MPID_H_Citrinica", "MPID_H_Lapis", "MPID_H_Diamand", "MPID_H_Umber", "MPID_H_Jade", "MPID_H_Ivy", "MPID_H_Kagetsu", "MPID_H_Zelkova", "MPID_H_Fogato", "MPID_H_Pandoro", "MPID_H_Bonet", "MPID_H_Misutira", "MPID_H_Panetone", "MPID_H_Merin", "MPID_H_Hortensia", "MPID_H_Seadas", "MPID_H_Rosado", "MPID_H_Goldmary", "MPID_H_Linden", "MPID_H_Saphir", "MPID_H_Veyre", "MPID_H_Mauve", "MPID_H_Anna", "MPID_H_Jean", "MPID_H_El", "MPID_H_Rafale", "MPID_H_Selestia", "MPID_H_Gregory", "MPID_H_Madeline"];
+pub const PIDArray : &[&str] = &["PID_リュール", "PID_ヴァンドレ", "PID_クラン", "PID_フラン", "PID_アルフレッド", "PID_エーティエ", "PID_ブシュロン", "PID_セリーヌ", "PID_クロエ", "PID_ルイ", "PID_ユナカ", "PID_スタルーク", "PID_シトリニカ", "PID_ラピス", "PID_ディアマンド", "PID_アンバー", "PID_ジェーデ", "PID_アイビー", "PID_カゲツ", "PID_ゼルコバ", "PID_フォガート", "PID_パンドロ", "PID_ボネ", "PID_ミスティラ", "PID_パネトネ", "PID_メリン", "PID_オルテンシア", "PID_セアダス", "PID_ロサード", "PID_ゴルドマリー", "PID_リンデン", "PID_ザフィーア", "PID_ヴェイル", "PID_モーヴ", "PID_アンナ", "PID_ジャン", "PID_エル", "PID_ラファール", "PID_セレスティア", "PID_グレゴリー", "PID_マデリーン" ];
 pub static mut playerIndex: usize = 0;
 pub static mut summonStart: usize = 0;
 pub static mut summonEnds: usize = 0;
@@ -25,10 +25,11 @@ pub fn Force_Get(forceType:  i32, method_info: OptionalMethod) -> &'static Force
 #[skyline::from_offset(0x01f73e50)]
 pub fn set_gender(this: &UnitEdit, gender: i32, method_info: OptionalMethod);
 
-#[skyline::from_offset(0x01f73bdc)]
+#[unity::from_offset("App", "UnitEdit", "SetName")]
 pub fn unit_edit_set_name(this: &UnitEdit, name: &Il2CppString, method_info: OptionalMethod);
 
-
+#[skyline::from_offset(0x029f4270)]
+pub fn has_content(content: i32, method_info: OptionalMethod) -> bool;
 //Get and Set Alear Gender
 pub fn get_lueur_gender(){
     unsafe {
@@ -95,43 +96,35 @@ pub fn set_lueur_gender(gender: i32){
 
 pub struct CharacterMod;
 impl ConfigBasicMenuItemSwitchMethods for CharacterMod {
-    fn init_content(this: & mut ConfigBasicMenuItem){
-        let triabolical = PersonData::get_list_mut().expect("triabolical is 'None'");
-        let t_list = &triabolical.list.items;
-        let seted = unsafe { setPerson };
-        if seted == false { set_Person(); }
-        unsafe { setPerson = true; }
-        changeCharacters();
-    }
+    fn init_content(this: & mut ConfigBasicMenuItem){}
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         GameVariableManager::make_entry(CHARACTER_KEY, 0);
         let toggle =  GameVariableManager::get_number(CHARACTER_KEY);
-        let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 35, 1);
-
-        if toggle != result {
-            GameVariableManager::set_number(CHARACTER_KEY, result);
-            Self::set_command_text(this, None);
-            Self::set_help_text(this, None);
-            this.update_text();
-            changeCharacters();
-            return BasicMenuResult::se_cursor();
-        } else {return BasicMenuResult::new(); }
+        let mut result: i32 = 0;
+        unsafe {
+            if has_content(0, None) { result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 40, 1); }
+            else { result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 35, 1); }
+            if toggle != result {
+                GameVariableManager::set_number(CHARACTER_KEY, result);
+                Self::set_command_text(this, None);
+                Self::set_help_text(this, None);
+                this.update_text();
+                changeCharacters();
+                return BasicMenuResult::se_cursor();
+            } else {return BasicMenuResult::new(); }
+        }
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let typeC =  GameVariableManager::get_number(CHARACTER_KEY);
-        if typeC == 0 { this.help_text = format!("Characters are set their default appearance/growths.").into();  }
-        else { this.help_text = format!("Characters are set to the selected character.").into();   }
+        if typeC == 0 { this.help_text = "Characters are set their default appearance/growths.".into();  }
+        else { this.help_text = "Characters are set to the selected character.".into();   }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let typeC: usize = (GameVariableManager::get_number(CHARACTER_KEY)).try_into().unwrap();
         if typeC != 0 {
-            unsafe {
-            this.command_text = Mess_Get(NameArray[typeC].into(), None);
-            }
+            unsafe { this.command_text = Mess_Get(NameArray[typeC].into(), None); }
         }
-        else { 
-            this.command_text = OptionArray[typeC].into()
-        }
+        else {  this.command_text = OptionArray[typeC].into() }
     }
 }
 
@@ -285,7 +278,7 @@ pub fn set_summons(){
 pub fn person_get_AssetForce(this: &PersonData, method_info: OptionalMethod) -> i32;
 
 pub fn changeCharacters(){
-    GameVariableManager::make_entry_norewind(CHARACTER_KEY, 0);
+    GameVariableManager::make_entry(CHARACTER_KEY, 0);
     let result =  GameVariableManager::get_number(CHARACTER_KEY);
     let triabolical = PersonData::get_list_mut().expect("triabolical is 'None'");
     let t_list = &triabolical.list.items;
@@ -338,7 +331,6 @@ pub fn changeCharacters(){
             set_lueur_gender(get_Gender(t_list[index], None));
         }
     }
-    set_summons();
 }
 
 #[unity::from_offset("App", "PersonData", "get_SummonColor")]

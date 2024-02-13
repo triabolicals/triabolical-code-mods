@@ -14,29 +14,30 @@ pub const GROWTH_KEY: &str = "G_GROWTH_TYPE";
 //Structure and functions to hook to Level display settings
 #[unity::class("TMPro", "TMP_Text")]
 pub struct TMP_Text {}
+
 #[unity::class("TMPro", "TextMeshProUGUI")]
 pub struct TextMeshProUGUI {
-    pub parent: TMP_Text,
+    pub parent: TMP_TextFields,
 }
 
 #[unity::class("App", "UnitStatusSetter")]
 pub struct UnitStatusSetter {
     junk: [u8; 376],
-    level: &'static UnitStatusSetter_ValueParam,
+    pub level: &'static UnitStatusSetter_ValueParam,
 }
 
 #[unity::class("App", "UnitStatusSetter_ValueParam")]
 pub struct UnitStatusSetter_ValueParam {
     setter: &'static UnitStatusSetter,
     m_root_ptr: u64,
-    m_title: &'static TextMeshProUGUI,
+    pub m_title: &'static TextMeshProUGUI,
     m_value: &'static TextMeshProUGUI,
     //
 }
 #[unity::class("App", "UnitInfoParamSetter")]
 pub struct UnitInfoParamSetter {
     junk : [u8; 160],
-    m_level : &'static TextMeshProUGUI,
+    pub m_level : &'static TextMeshProUGUI,
 }
 #[unity::class("App","LevelUpWindowController")]
 pub struct LevelUpWindowController {
@@ -175,11 +176,10 @@ pub fn patchGrowth(){
 }
 pub struct GrowthMod;
 impl ConfigBasicMenuItemSwitchMethods for  GrowthMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ patchGrowth(); }
+    fn init_content(this: &mut ConfigBasicMenuItem){ }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle =  GameVariableManager::get_number(GROWTH_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 3, 1);
-
         if toggle != result {
             GameVariableManager::set_number(GROWTH_KEY, result);
             Self::set_command_text(this, None);
@@ -208,7 +208,7 @@ impl ConfigBasicMenuItemSwitchMethods for  GrowthMod {
         }
         else if type_C == 2 { this.command_text = concat_strings3(get_mess_str("MID_MENU_NO"), " ".into(), get_mess_str("MID_GAMESTART_GROWMODE_SELECT_TITLE"), None); }
         else if type_C == 3 { this.command_text = get_mess_str("MID_Hub_MuscleExercises_Perfect");  }
-        else if type_C == 4 { this.command_text = format!("???").into();  }
+        else if type_C == 4 { this.command_text = "???".into();  }
     }
     }
 }
@@ -229,8 +229,8 @@ impl ConfigBasicMenuItemSwitchMethods for LevelMod {
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_bool(LEVEL_DIS_KEY);
-        if (toggle) { this.help_text = format!("Displays unit's total level.").into(); } 
-        else { this.help_text = format!("Default level display.").into(); }
+        if (toggle) { this.help_text = "Displays unit's total level.".into(); } 
+        else { this.help_text = "Default level display.".into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_bool(LEVEL_DIS_KEY);

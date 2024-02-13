@@ -8,24 +8,75 @@ pub const SUPPORT_KEY: &str = "G_SUPPORT_TYPE";
 pub fn patchSupport() {
     GameVariableManager::make_entry_norewind(SUPPORT_KEY, 0);
     let active =  GameVariableManager::get_number(SUPPORT_KEY);
-    let replaceB = &[0xfd, 0x7b, 0xba, 0xa9];
-    let replaceS = &[0xff,0xc3,0x01,0xd1];
+    let replaceB = &[0xc0, 0x24, 0x11, 0x14];
+    let replaceS = &[0x51,0x24,0x011,0x94];
     let replaceRig = &[0xC0, 0x03, 0x5F, 0xD6];
+
+    let duration_0 = &[0xE0, 0x03, 0x27, 0x1E];
+    let duration_25 = &[0x00, 0x10, 0x2a, 0x1e];
+
+    // Support 
+   // Patch::in_text(0x02097af0).bytes(replaceRig);   // 0x08, 0x32, 0x40, 0xf9
+    /*
+    Patch::in_text(0x02097c90).bytes(replaceRig).unwrap();
+    Patch::in_text(0x020987ec).nop();   //0x45, 0x61, 0x07, 0x94 
+    Patch::in_text(0x02096d7c).bytes(duration_0); 
+    Patch::in_text(0x02097028).bytes(duration_0);
+
+    Patch::in_text(0x02097c90).bytes(replaceB);
+    Patch::in_text(0x020987ec).bytes(&[0x45, 0x61, 0x07, 0x94]);
+    Patch::in_text(0x02096d7c).bytes(duration_25);
+    Patch::in_text(0x02097028).bytes(duration_25);
+
+
+    Patch::in_text(0x02097e4c).bytes(replaceRig);
+    Patch::in_text(0x020988a4).bytes(replaceRig); 
+    Patch::in_text(0x02098a60).bytes(replaceRig); //0x67, 0x22, 0x05, 0x14
+    */
     if active == 0{
-        Patch::in_text(0x020969b0).bytes(replaceB).unwrap();
-        Patch::in_text(0x02097320).bytes(replaceS).unwrap();
+        Patch::in_text(0x02097c90).bytes(replaceB);
+        Patch::in_text(0x020987ec).bytes(&[0x45, 0x61, 0x07, 0x94]);
+        Patch::in_text(0x02096d7c).bytes(duration_25);
+        Patch::in_text(0x02097028).bytes(duration_25);
+
+        Patch::in_text(0x02097e4c).bytes(replaceS);
+        Patch::in_text(0x020988a4).bytes(&[0x67, 0x22, 0x05, 0x14]);
+        Patch::in_text(0x02098a60).bytes(&[0xf8, 0x21, 0x05, 0x14]);
     }
     else if active == 1{
-        Patch::in_text(0x020969b0).bytes(replaceB).unwrap();
-        Patch::in_text(0x02097320).bytes(replaceRig).unwrap();
+        //Bonds
+        Patch::in_text(0x02096d7c).bytes(duration_0); 
+        Patch::in_text(0x02097028).bytes(duration_0);
+        //Supports normal
+        Patch::in_text(0x02097c90).bytes(replaceB);
+        Patch::in_text(0x020987ec).bytes(&[0x45, 0x61, 0x07, 0x94]);
+
+        Patch::in_text(0x02097e4c).nop();
+        Patch::in_text(0x020988a4).bytes(replaceRig); 
+        Patch::in_text(0x02098a60).bytes(replaceRig);
     }
-    else if active == 2{ // Support
-        Patch::in_text(0x020969b0).bytes(replaceRig).unwrap();
-        Patch::in_text(0x02097320).bytes(replaceS).unwrap();
+    else if active == 2 { // Support
+        Patch::in_text(0x02096d7c).bytes(duration_0); 
+        Patch::in_text(0x02097028).bytes(duration_0);
+        //bonds normal
+        Patch::in_text(0x02097e4c).bytes(replaceS);
+        Patch::in_text(0x020988a4).bytes(&[0x67, 0x22, 0x05, 0x14]);
+        Patch::in_text(0x02098a60).bytes(&[0xf8, 0x21, 0x05, 0x14]);
+
+        Patch::in_text(0x02097c90).bytes(replaceRig).unwrap();
+        Patch::in_text(0x020987ec).nop(); 
     }
-    else if active == 3{ // Both
-        Patch::in_text(0x020969b0).bytes(replaceRig).unwrap();
-        Patch::in_text(0x02097320).bytes(replaceRig).unwrap();
+    else if active == 3{
+        Patch::in_text(0x02096d7c).bytes(duration_0); 
+        Patch::in_text(0x02097028).bytes(duration_0);
+
+        Patch::in_text(0x02097e4c).nop();
+        Patch::in_text(0x020988a4).bytes(replaceRig); 
+        Patch::in_text(0x02098a60).bytes(replaceRig);
+
+        Patch::in_text(0x02097c90).bytes(replaceRig).unwrap();
+        Patch::in_text(0x020987ec).nop(); 
+
     }
 }
 

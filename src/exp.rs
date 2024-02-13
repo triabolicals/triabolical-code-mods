@@ -1,11 +1,13 @@
 use skyline::patching::Patch;
 use unity::prelude::*;
+use std::io::Write;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
 use engage::gamedata::unit::Unit;
 use engage::gamedata::CapabilitySbyte2;
 use engage::force::*;
 use crate::string::*;
+use crate::rng::*;
 use engage::gamedata::JobData;
 use engage::gameuserdata::GameUserData;
 pub const EXP_KEY: &str = "G_EXP_TYPE";
@@ -14,7 +16,7 @@ impl ConfigBasicMenuItemSwitchMethods for ExpMod {
     fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry_norewind(EXP_KEY, 0); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle =  GameVariableManager::get_number(EXP_KEY);
-        let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 4, 1);
+        let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 6, 1);
         if toggle != result {
             GameVariableManager::set_number(EXP_KEY, result);
             Self::set_command_text(this, None);
@@ -25,21 +27,21 @@ impl ConfigBasicMenuItemSwitchMethods for ExpMod {
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let typeC =  GameVariableManager::get_number(EXP_KEY);
-        if typeC == 0 {this.help_text = format!("Exp gain is set to normal.").into(); }
-        else if typeC == 1 {this.help_text = format!("Exp is uncapped and scaled towards the player's average level.").into(); }
-        else if typeC == 2 {this.help_text = format!("Units will not gain Exp.").into(); }
-        else if typeC == 3 {this.help_text = format!("Units can gain more than 100 Exp.").into(); }
-        else if typeC >= 4 {this.help_text = format!("???").into(); }
+        if typeC == 0 {this.help_text = "Exp gain is set to normal.".into(); }
+        else if typeC == 1 {this.help_text = "Exp is uncapped and scaled towards the player's average level.".into(); }
+        else if typeC == 2 {this.help_text = "Units will not gain Exp.".into(); }
+        else if typeC == 3 {this.help_text = "Units can gain more than 100 Exp.".into(); }
+        else if typeC >= 4 {this.help_text = "???".into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let type_C =  GameVariableManager::get_number(EXP_KEY);
-        if type_C == 1 { this.command_text = format!("Rubberband").into(); }
-        else if type_C == 0 { this.command_text = format!("Default").into(); }
-        else if type_C == 2 {this.command_text = format!("No Exp").into(); }
-        else if type_C == 3 {this.command_text = format!("Uncapped").into(); }
-        else if type_C == 4 {this.command_text = format!("???").into(); }
-        else if type_C == 5 {this.command_text = format!("Debug 10 Level").into(); }
-        else if type_C == 6 {this.command_text = format!("Debug 99 Level").into(); }
+        if type_C == 1 { this.command_text = "Rubberband".into(); }
+        else if type_C == 0 { this.command_text = "Default".into(); }
+        else if type_C == 2 {this.command_text = "No Exp".into(); }
+        else if type_C == 3 {this.command_text = "Uncapped".into(); }
+        else if type_C == 4 {this.command_text = "??".into(); }
+        else if type_C == 5 {this.command_text = "???".into(); }
+        else if type_C == 6 {this.command_text = "????".into(); }
     }
 }
 // Structures required to change exp and level ups
@@ -66,11 +68,10 @@ pub struct LevelUpSequnece {
 }
 
 // Random Functions
-#[unity::class("App", "Random")]
-pub struct Random {}
 
-#[unity::from_offset("App", "Random", "get_Game")]
-pub fn random_get_Game(method_info: OptionalMethod) -> &'static Random;
+
+
+
 
 #[skyline::from_offset(0x023751b0)]
 pub fn random_getMinMax(this: &Random, min: i32, max: i32, method_info: OptionalMethod) -> i32;
@@ -104,14 +105,8 @@ pub fn normalizeExp(this: &Unit, exp: i32, method_info: OptionalMethod) -> i32 {
 
 
 pub fn deactivate_exp_bar(deactivate: bool) {
-    if deactivate { 
-        Patch::in_text(0x01f7f3bc).nop(); 
-        println!("Exp Bar is deactivated");
-    }
-    else { 
-        Patch::in_text(0x01f7f3bc).bytes(&[0x19,0xa6,0x15,0x14]);
-        println!("Exp Bar is activated");
-      }
+    if deactivate { Patch::in_text(0x01f7f3bc).nop(); }
+    else { Patch::in_text(0x01f7f3bc).bytes(&[0x19,0xa6,0x15,0x14]); }
 }
 
 //Rubberbanding function and disables the exp bar if it doesn't do anything
@@ -119,7 +114,6 @@ pub fn deactivate_exp_bar(deactivate: bool) {
 pub fn addExp(this: &mut UnitGrowSequence, method_info: OptionalMethod){
     let typeC =  GameVariableManager::get_number(EXP_KEY);
     deactivate_exp_bar( typeC == 2  );
-    println!("Unit {}, Level {}, MaxJobLevel {}, SP = {}",  this.m_unit.person.name.get_string().unwrap(), this.m_unit.m_Level, this.m_unit.m_Job.MaxLevel, this.m_SkillPoint);
     if typeC != 1 {
         if typeC == 4 {  this.m_SkillPoint = this.m_Exp;}
         deactivate_exp_bar( this.m_SkillPoint == 0 && ( this.m_Exp == 0 || this.m_unit.m_Job.MaxLevel == this.m_unit.m_Level)  );
@@ -161,7 +155,8 @@ pub fn unit_get_capability_grow(this: &Unit, index: i32, is_autoGrow: bool, meth
 #[skyline::from_offset(0x02054ae0)]
 pub fn base_job(this: &JobData, method_info: OptionalMethod) -> &CapabilitySbyte2;
 //  HP  Str Dex Spd Luck Def Mag Mdef Phys Sight Move
-
+#[skyline::from_offset(0x01a54d60)]
+pub fn get_HP(this: &Unit, method_info: OptionalMethod) -> i32;
 //To Display Growth Rates on help stat text
 #[unity::hook("App", "HelpParamSetter", "SetBattleInfo")]
 pub fn SetBattleInfo(this: u64, engine: u64, unit: &Unit, typ_e: i32, text: &Il2CppString, method_info: OptionalMethod){
@@ -169,6 +164,11 @@ pub fn SetBattleInfo(this: u64, engine: u64, unit: &Unit, typ_e: i32, text: &Il2
     let mut grow: i32 = 0;
     let mut grow2: i32 = 0;
     let mut growth_rate_add = false;
+    if unit.m_Force.is_none() {
+        call_original!(this, engine, unit, typ_e, text, method_info); 
+        return;
+    }
+    let force = unit.m_Force.unwrap().m_Type;
     match typ_e {
         0 => {
             grow = unit_get_capability_grow(unit, 0, false, None);
@@ -221,20 +221,38 @@ pub fn SetBattleInfo(this: u64, engine: u64, unit: &Unit, typ_e: i32, text: &Il2
             growth_rate_add = true;
         }
         _ => { growth_rate_add = false; }
-
     }
-    if growth_rate_add && grow > 0 {
+    let mut OKO: &Il2CppString = "".into();
+    let mut growth_str: &Il2CppString = "".into();
+    if typ_e == 0 && force < 3 {
+        let hp = get_HP(unit, None);
+        let posion = get_position_stack(unit);
+        let phys = hp + unit_get_capability(unit, 5, true, None) - posion;
+        let phys2 = phys + unit_get_capability(unit, 5, true, None) - posion;
+        let phys4 = phys + 3*unit_get_capability(unit, 5, true, None) - 3*posion;
+
+        let phys_str: &Il2CppString = format!("\n{} {}: {} / {} / {}", get_mess_str("MID_SYS_Weapon_Attack").get_string().unwrap(), get_mess_str("MID_SYS_Dmg").get_string().unwrap(), 
+        phys, phys2 / 2 + (phys2 % 2).signum(), phys4 / 4 + (phys4 % 4).signum()).into();
+
+        let mag = hp + unit_get_capability(unit, 7, true, None) - posion;
+        let mag2 = mag + unit_get_capability(unit, 7, true, None) - posion;
+        let mag4 = mag + 3*unit_get_capability(unit, 7, true, None) - 3*posion;
+
+        let mag_str: &Il2CppString = format!("\n{} {}: {} / {} / {}", get_mess_str("MID_SYS_Magic_Attack").get_string().unwrap(), get_mess_str("MID_SYS_Dmg").get_string().unwrap(), 
+        mag, mag2 / 2 + (mag2 % 2).signum(), mag4 / 4 + (mag4 % 4).signum()).into();
+
+        OKO = concat_strings(phys_str, mag_str, None);
+    }
+    if (force != 1 && force != 2 ) && (growth_rate_add && grow > 0 ) {
         let mut level_str: &Il2CppString = format!(": {}%", grow).into();
         if grow2 != grow {
-            if grow-grow2 < 0 { level_str = format!(" {}% ({}% {}%)", grow, grow2, grow-grow2).into(); }
-            else { level_str = format!(" {}% ({}% + {}%)", grow, grow2, grow-grow2).into(); }
-            
+            if grow-grow2 < 0 { level_str = format!(": {}%", grow).into(); }
+            else { level_str = format!(": {}% ({}% + {}%)", grow, grow2, grow-grow2).into(); }
         }
-        let new_str = concat_strings4(text,"\n".into(),  Mess_Get("MID_GAMESTART_GROWMODE_SELECT_TITLE".into(), None) , level_str, None);
-        call_original!(this, engine, unit, typ_e, new_str, method_info);
+        growth_str = concat_strings3("\n".into(), Mess_Get("MID_GAMESTART_GROWMODE_SELECT_TITLE".into(), None) , level_str, None);
     }
-    else { call_original!(this, engine, unit, typ_e, text, method_info); }
-    }
+    call_original!(this, engine, unit, typ_e, concat_strings3(text, OKO, growth_str, None), method_info);
+}
 }
 
 //Function that does the level up and hooked it to do random level up type on 'Random'

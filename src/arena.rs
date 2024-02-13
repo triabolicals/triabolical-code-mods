@@ -2,9 +2,99 @@ use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
+use engage::gamedata::unit::Unit;
+use engage::gamedata::CapabilitySbyte2;
+use engage::force::*;
 use crate::string::*;
+use engage::gamedata::JobData;
+use engage::gamedata::unit::UnitRing;
+use engage::gamedata::unit::GodUnit;
+use engage::gameuserdata::GameUserData;
 
 pub const ARENA_KEY: &str = "G_ARENA_SKIP";
+
+#[skyline::from_offset(0x01ca67f0)]
+pub fn arena_order_ctor(this: &ArenaOrderSequence, method_info: OptionalMethod);
+
+#[unity::class("App", "ArenaOrderSequence")]
+pub struct ArenaOrderSequence {
+    junk: [u8; 0x78],
+    pub is_emblem_battle: bool,
+    pub is_special_battle: bool, 
+    padding: [u8; 2],
+    pub training_type: i32,
+    pub training_unit: &'static Unit,
+    pub battle_unit: &'static Unit,
+    pub battle_emblem: &'static GodUnit,
+    pub emblem_type: i32,
+    pub bond_exp: i32,
+    pub calculator: u64, 
+    pub sim_calculator: u64,
+    objects: [u64; 4],
+    pub next_label: i32,
+    pub is_back_bond_select_emblem: bool,
+    padding2: [u8; 3],
+    arena_objects: u64,
+    pub god_unit: Option<&'static GodUnit>,
+    pub ring: Option<&'static UnitRing>,
+}
+impl ArenaOrderSequence {
+    pub fn new() -> &'static mut Self {
+        let item = Self::instantiate().unwrap();
+        unsafe { arena_order_ctor(item, None); }
+        item
+    }
+}
+
+#[skyline::from_offset(0x01a4f180)]
+pub fn unit_set_god_unit(this: &Unit, god_unit:Option<&GodUnit>, method_info: OptionalMethod);
+
+#[skyline::from_offset(0x01a4e000)]
+pub fn unit_set_ring(this: &Unit, ring: Option<&UnitRing>, method_info: OptionalMethod);
+
+#[unity::from_offset("App", "BattleCalculator", "GetDeadSide")]
+pub fn BattleCalculator_GetDeadSide(this: u64, method_info: OptionalMethod) -> i32;
+
+#[skyline::from_offset(0x027cb090)]
+pub fn achieve_add_unit_battle_count(method_info: OptionalMethod);
+
+#[skyline::from_offset(0x027cb0f0)]
+pub fn achieve_add_unit_battle_win(method_info: OptionalMethod);
+
+#[skyline::from_offset(0x027cb150)]
+pub fn achieve_add_god_battle_count(method_info: OptionalMethod);
+
+#[skyline::from_offset(0x027cb1b0)]
+pub fn achieve_add_god_battle_win(method_info: OptionalMethod);
+
+#[unity::hook("App", "ArenaOrderSequence", "FinishTraining")]
+pub fn arena_finish_training(this: &ArenaOrderSequence, method_info: OptionalMethod){
+    if GameVariableManager::get_bool(ARENA_KEY) {
+        unsafe {
+            unit_set_god_unit(this.training_unit, this.god_unit, None);
+            unit_set_ring(this.training_unit, this.ring, None);
+            let deadSide = BattleCalculator_GetDeadSide(this.calculator, None);
+            if this.is_emblem_battle == false {
+                achieve_add_unit_battle_count(None);
+                if deadSide == 1 { achieve_add_unit_battle_win(None); }
+            }
+            else {
+                achieve_add_god_battle_count(None);
+                if deadSide == 1 { achieve_add_god_battle_win(None); }
+            }
+            if this.training_type == 0 {
+                let mut value =  GameVariableManager::get_number("G_拠点_闘技場済み");
+                value += 1; 
+                GameVariableManager::set_number("G_拠点_闘技場済み", value);
+            }
+        }
+    }
+    else {
+        call_original!(this, method_info);
+    }
+
+}
+
 pub struct ArenaMod;
 pub fn patchArena(){
     GameVariableManager::make_entry_norewind(ARENA_KEY, 0);
@@ -25,19 +115,24 @@ pub fn patchArena(){
         Patch::in_text(0x01ca6f40).bytes(set_return).unwrap();
         // App.ArenaOrderSequence$$BackgroundOut
         Patch::in_text(0x01ca6ff0).bytes(set_return).unwrap();
-
+        
+        // Combat.ArenaCombatSequence.<StartFight>d__32$$MoveNext
         Patch::in_text(0x01bacb40).bytes(set_false).unwrap();
         Patch::in_text(0x01bacb44).bytes(set_return).unwrap();
-
+        
+        // Combat.ArenaCombatSequence.<Setup>d__30$$MoveNext
         Patch::in_text(0x01bac790).bytes(set_false).unwrap();
         Patch::in_text(0x01bac794).bytes(set_return).unwrap();
 
+        // Combat.ArenaCombatSequence.<WaitBegin>d__31$$MoveNext
         Patch::in_text(0x01bacd50).bytes(set_false).unwrap();
         Patch::in_text(0x01bacd54).bytes(set_return).unwrap();
 
+        // Combat.ArenaCombatSequence.<WaitFinish>d__33$$MoveNext
         Patch::in_text(0x01bacf60).bytes(set_false).unwrap();
         Patch::in_text(0x01bacf64).bytes(set_return).unwrap();
 
+        // Combat.ArenaCombatSequence.<Exit>d__38$$MoveNext
         Patch::in_text(0x01bab900).bytes(set_false).unwrap();
         Patch::in_text(0x01bab904).bytes(set_return).unwrap();
 
@@ -54,12 +149,16 @@ pub fn patchArena(){
         // App.ArenaOrderSequence$$CreateBind
         Patch::in_text(0x01ca616c).bytes(&[0x60,0x00, 0x80, 0x52]).unwrap();    // App.Fade$$FadeWait(3)
         Patch::in_text(0x01ca6124).bytes(&[0x00,0x10, 0x20, 0x1E]).unwrap();    //App.Fade$$BlackOut(0.0, 4)
+        Patch::in_text(0x01ca67b0).nop();
 
         //BlackIn/BlackOut duration to 0
         Patch::in_text(0x01ca6484).bytes(&[0xE0,0x03, 0x27, 0x1E]).unwrap();
         Patch::in_text(0x01ca6124).bytes(&[0xE0,0x03, 0x27, 0x1E]).unwrap();
-        
+
+        //Patch::in_text(0x01caa4b0).bytes(set_return).unwrap();
         Patch::in_text(0x01ca67b0).nop();
+
+        Patch::in_text(0x01ca9e80).bytes(set_return).unwrap();
         println!("Arena battles are skipped");
     }
     else {
@@ -88,13 +187,12 @@ pub fn patchArena(){
         Patch::in_text(0x01ca6124).bytes(&[0x00 , 0x10 , 0x2e , 0x1e]).unwrap();
         Patch::in_text(0x01ca64c8).bytes(&[0xe1 , 0x03 , 0x16 , 0xaa]).unwrap();
         Patch::in_text(0x01ca6484).bytes(&[0x00 , 0x10 , 0x2e , 0x1e]).unwrap();
+        Patch::in_text(0x01ca9e80).bytes(&[0xff, 0x43, 0x02, 0xd1]).unwrap();
         println!("Arena battles are not skipped");
     }
 }
 impl ConfigBasicMenuItemSwitchMethods for ArenaMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){
-        patchArena();
-    }
+    fn init_content(this: &mut ConfigBasicMenuItem){ }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         GameVariableManager::make_entry(ARENA_KEY, 0);
         let active = GameVariableManager::get_bool(ARENA_KEY);
@@ -111,8 +209,8 @@ impl ConfigBasicMenuItemSwitchMethods for ArenaMod {
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let active = GameVariableManager::get_bool(ARENA_KEY);
-        if (active) { this.help_text = format!("Arena battles are skipped.").into(); } 
-        else { this.help_text = format!("Arena battles are not skipped.").into(); }
+        if (active) { this.help_text = "Arena battles are skipped.".into(); } 
+        else { this.help_text = "Arena battles are not skipped.".into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let active = GameVariableManager::get_bool(ARENA_KEY);
@@ -130,8 +228,4 @@ extern "C" fn arena() -> &'static mut ConfigBasicMenuItem {
         ConfigBasicMenuItem::new_switch::<ArenaMod>(str0.get_string().unwrap()) 
     }
 }
-
-
-pub fn arena_install(){
-  cobapi::install_game_setting(arena);
-}
+pub fn arena_install(){ cobapi::install_game_setting(arena); }

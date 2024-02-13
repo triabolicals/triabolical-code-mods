@@ -56,7 +56,14 @@ pub fn UnitItem_GetPower(this: &UnitItem, method_info: OptionalMethod) -> i32;
 pub fn UnitItem_GetEquipSkills(this: &UnitItem, method_info: OptionalMethod) -> Option<&SkillArray>;
 
 #[skyline::from_offset(0x01a35520)]
-pub fn Unit_has_skill(this: &Unit, sid: &SkillData, method_info: OptionalMethod) -> bool;
+pub fn Unit_has_skill(this: &Unit, skill: &SkillData, method_info: OptionalMethod) -> bool;
+
+#[skyline::from_offset(0x01a35540)]
+pub fn Unit_has_skill_sid(this: &Unit, sid: &Il2CppString, method_info: OptionalMethod) -> bool;
+
+#[skyline::from_offset(0x01a23a40)]
+pub fn Unit_is_enchantment(this: &Unit, method_info: OptionalMethod) -> bool;
+
 // MID_SYS_Mt
 #[unity::class("App", "HelpParamSetter")]
 pub struct HelpParamSetter {
@@ -74,7 +81,6 @@ pub fn check_effectiveness(item: &UnitItem) -> i32 {
             for sid in EFFECTIVE_SIDS {
                 if skillarray_find(skill.unwrap(), sid.into(), None).is_some() {
                     let eff = skillarray_find(skill.unwrap(), sid.into(), None).unwrap().efficacy_value;
-                    println!("Effective Value: {}", eff);
                     return eff;
                 }
             }
@@ -82,30 +88,55 @@ pub fn check_effectiveness(item: &UnitItem) -> i32 {
     }
     return 0;
 }
-
-pub fn check_effectiveness_skills(skills: &SkillArray) -> i32 {
+pub fn get_position_stack(unit: &Unit) -> i32 {
     unsafe {
-        for sid in EFFECTIVE_SIDS {
-            let skill_data = skillarray_find(skills, sid.into(), None);
-            if skill_data.is_some() {
-                let eff = skill_data.unwrap().efficacy_value;
-                println!("Effective Value: {}, {}", eff, skill_data.unwrap().name.get_string().unwrap());
-                return eff;
-            }
-        }
+    if Unit_has_skill_sid(unit, "SID_劇毒".into(), None) { return 5; }
+    else if Unit_has_skill_sid(unit, "SID_猛毒".into(), None) { return 3; }
+    else if Unit_has_skill_sid(unit, "SID_毒".into(), None) { return 1; }
     }
     return 0;
+
+
+
 }
-pub fn check_effectiveness_unit(unit: &Unit) -> i32 {
+pub fn check_effectiveness_unit(unit: &Unit, item: &UnitItem) -> i32 {
     unsafe {
-        for sid in EFFECTIVE_SIDS {
-            let skill = SkillData::get(sid);
-            if skill.is_some() {
-                if Unit_has_skill(unit, skill.unwrap(), None) {
-                    let eff = skill.unwrap().efficacy_value;
-                    println!("Effective Value: {}, {}", eff, skill.unwrap().name.get_string().unwrap());
-                    return eff;
-                 }
+        let item_equip_skills = UnitItem_GetEquipSkills(item, None);
+        if item_equip_skills.is_some() {
+            let item_skills = item_equip_skills.unwrap();
+            //
+            if Unit_has_skill_sid(unit, "SID_邪竜特効変化".into(), None) && Unit_has_skill_sid(unit, "SID_邪竜特効".into(), None) {
+                let mut other_effective = 0; 
+                println!("I have Holy Aura");
+                //Pure Water Enchant
+                if Unit_has_skill_sid(unit, "SID_異形特効".into(), None) && Unit_has_skill_sid(unit, "SID_EN_聖水_発動演出".into(), None) {
+                    println!("I have Holy Aura and Pure Water Enchant");
+                    return SkillData::get("SID_邪竜特効").unwrap().efficacy_value + SkillData::get("SID_異形特効").unwrap().efficacy_value;
+                }
+                for sid in EFFECTIVE_SIDS {
+                    if *sid == "SID_邪竜特効" { continue; }
+                    if skillarray_find(item_skills, sid.into(), None).is_some() {
+                        other_effective = SkillData::get(sid).unwrap().efficacy_value;
+                        println!("I have Holy Aura and Weapon Effectiviness");
+                    }
+                }
+                return SkillData::get("SID_邪竜特効").unwrap().efficacy_value + other_effective;
+            }
+            if Unit_has_skill_sid(unit, "SID_異形特効".into(), None) && Unit_has_skill_sid(unit, "SID_EN_聖水_発動演出".into(), None) {
+                return SkillData::get("SID_異形特効").unwrap().efficacy_value;
+            }
+            for sid in EFFECTIVE_SIDS {
+                if skillarray_find(item_skills, sid.into(), None).is_some() && Unit_has_skill_sid(unit, sid.into(), None) {
+                    return SkillData::get(sid).unwrap().efficacy_value;
+                }
+            }
+        }
+        else {
+            if Unit_has_skill_sid(unit, "SID_邪竜特効変化".into(), None) {
+                return SkillData::get("SID_邪竜特効").unwrap().efficacy_value;
+            }
+            if Unit_has_skill_sid(unit, "SID_異形特効".into(), None) && Unit_has_skill_sid(unit, "SID_EN_聖水_発動演出".into(), None) {
+                return SkillData::get("SID_異形特効").unwrap().efficacy_value;
             }
         }
     }
@@ -127,16 +158,29 @@ pub fn HelpParamSetter_SetItemData(this: &HelpParamSetter, frame: u64, data: Opt
 
                 let might_str = concat_strings(get_mess_str("MID_SYS_Mt"), power_string, None);
                 let mut eff = check_effectiveness(item.unwrap());
-                if eff == 0 {
-                    eff = check_effectiveness_unit(unit);
+                let mut eff2 = check_effectiveness_unit(unit, item.unwrap()); 
+                if eff == 0 && (eff2 != 0 && eff2 < 4) {
+                    eff = eff2;
+                }
+                if eff == 0 && eff2 >= 4 {
+                    eff = eff2 - 2;
                 }
                 if eff != 0 {
                     let atk_type = TMP_Text_get_text(&this.m_TitleAtk, None);
                     let atk_value = TMP_Text_get_text(&this.m_ValueAtk, None).get_string().unwrap();
                     let atk: Result<i32, _> = atk_value.parse();
                     if atk.is_ok() {
-                        let effective_atk = (eff-1)*power + ( atk.unwrap() as i32 );
-                        power_string = format!(" {}: {}\n", atk_type.get_string().unwrap(), effective_atk).into();
+                        let base_atk = atk.unwrap() as i32;
+                        let effective_atk = (eff-1)*power + base_atk;
+
+                        if eff2 >= 4 {
+                            let effective_atk2 = (eff2-eff-1)*power + base_atk;
+                            power_string = format!(" {}: {} / {}\n", atk_type.get_string().unwrap(), effective_atk, effective_atk2 ).into();
+                        }
+                        else {
+                            power_string = format!(" {}: {}\n", atk_type.get_string().unwrap(), effective_atk).into();
+                        }
+                        
                         let final_str = concat_strings4(might_str, get_mess_str("MID_SYS_Eff"), power_string, text, None);
                         TMP_Text_set_text(&this.m_ContextsText, final_str, None);
                         return;

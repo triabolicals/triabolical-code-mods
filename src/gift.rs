@@ -44,17 +44,17 @@ impl ConfigBasicMenuItemSwitchMethods for Giftmod {
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_number(GIFT_KEY);
-        if toggle == 0 { this.help_text = format!("Accept both patch and DLC gift items.").into(); } 
-        else if toggle == 1 { this.help_text = format!("Accept only patch update items.").into(); } 
-        else if toggle == 2 { this.help_text = format!("Accept only paid DLC items.").into(); }
-        else if toggle == 3 { this.help_text = format!("Accept no gift items.").into(); }
+        if toggle == 0 { this.help_text = "Accept both patch and DLC gift items.".into(); } 
+        else if toggle == 1 { this.help_text = "Accept only patch update items.".into(); } 
+        else if toggle == 2 { this.help_text = "Accept only paid DLC items.".into(); }
+        else if toggle == 3 { this.help_text = "Accept no gift items.".into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_number(GIFT_KEY);
-        if toggle == 0 { this.command_text = format!("All Gifts").into();} 
-        else if toggle == 1 { this.command_text = format!("Patch Update Gifts").into(); }
-        else if toggle == 2 { this.command_text = format!("Expansion Pass Gifts").into(); }
-        else if toggle == 3 { this.command_text = format!("No Gifts").into(); }
+        if toggle == 0 { this.command_text = "All Gifts".into();} 
+        else if toggle == 1 { this.command_text = "Patch Update Gifts".into(); }
+        else if toggle == 2 { this.command_text = "Expansion Pass Gifts".into(); }
+        else if toggle == 3 { this.command_text = "No Gifts".into(); }
     }
 }
 extern "C" fn gift() -> &'static mut ConfigBasicMenuItem { ConfigBasicMenuItem::new_switch::<Giftmod>("Gift Options") }

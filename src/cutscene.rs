@@ -38,8 +38,8 @@ impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_bool(CUTSCENES_KEY);
-        if (toggle) { this.help_text = format!("Disables cutscenes and movies during chapter maps.").into(); } 
-        else { this.help_text = format!("Enables cutscenes and movies during chapter maps.").into(); }
+        if (toggle) { this.help_text = "Disables cutscenes and movies during chapter maps.".into(); } 
+        else { this.help_text = "Enables cutscenes and movies during chapter maps.".into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let toggle = GameVariableManager::get_bool(CUTSCENES_KEY);

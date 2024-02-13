@@ -159,9 +159,9 @@ pub fn get_cook_taste_description(pid: &Il2CppString, kind: i32) -> &'static Il2
             }
         }
     }
-    if kind == 2 { return format!("Dish will have the Chef's 3rd dish title.").into();  }
-        else if kind == 1 { return format!("Dish will have the Chef's 2nd dish title.").into();  }
-        else {  return format!("Dish will have the Chef's 1st dish title.").into(); }
+    if kind == 2 { return "Dish will have the Chef's 3rd dish title.".into();  }
+        else if kind == 1 { return "Dish will have the Chef's 2nd dish title.".into();  }
+        else {  return "Dish will have the Chef's 1st dish title.".into(); }
 }
 }
 
@@ -180,7 +180,7 @@ pub fn patchCook(){
 }
 
 impl ConfigBasicMenuItemSwitchMethods for CookMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ patchCook();  }
+    fn init_content(this: &mut ConfigBasicMenuItem){  }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle =  GameVariableManager::get_number(COOK_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 5, 1);
@@ -188,7 +188,6 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
             GameVariableManager::set_number(COOK_KEY, result);
             Self::set_help_text(this, None);
             Self::set_command_text(this, None);
-
             this.update_text();
             patchCook();
             return BasicMenuResult::se_cursor();
@@ -197,12 +196,12 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
         let type_C =  GameVariableManager::get_number(COOK_KEY);
-        if type_C == 0 {this.help_text = format!("Dish titles are determined randomly.").into(); }
-        else if type_C == 5 { this.help_text = format!("Dish will have the 'Failure' title.").into(); } 
-        else if type_C == 4 { this.help_text = format!("Dish will have the 'Ordinary' title.").into(); }
-        else if type_C == 3 { this.help_text = format!("Dish will have the Chef's 3rd dish title.").into();  }
-        else if type_C == 2 { this.help_text = format!("Dish will have the Chef's 2nd dish title.").into();  }
-        else if type_C == 1 { this.help_text = format!("Dish will have the Chef's 1st dish title.").into();  }
+        if type_C == 0 {this.help_text = "Dish titles are determined randomly.".into(); }
+        else if type_C == 5 { this.help_text = "Dish will have the 'Failure' title.".into(); } 
+        else if type_C == 4 { this.help_text = "Dish will have the 'Ordinary' title.".into(); }
+        else if type_C == 3 { this.help_text = "Dish will have the Chef's 3rd dish title.".into();  }
+        else if type_C == 2 { this.help_text = "Dish will have the Chef's 2nd dish title.".into();  }
+        else if type_C == 1 { this.help_text = "Dish will have the Chef's 1st dish title.".into();  }
         unsafe {
             Mess_Load("Cook".into(), None);
             let chief = get_CurrentCookingPid(None);
@@ -221,9 +220,9 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
             if type_C == 0 { this.command_text = format!("Default").into();  }
             else if type_C == 5 { this.command_text = get_mess_str("MID_FOODRANK_DefinitelySuffer").into(); } 
             else if type_C == 4 { this.command_text = get_mess_str("MID_FOODRANK_Normal").into();  } 
-            else if type_C == 3 { this.command_text = format!("Dish Title 3").into(); }
-            else if type_C == 2 { this.command_text = format!("Dish Title 2").into();  }
-            else if type_C == 1 { this.command_text = format!("Dish Title 1").into();  }
+            else if type_C == 3 { this.command_text = "Dish Title 3".into(); }
+            else if type_C == 2 { this.command_text = "Dish Title 2".into();  }
+            else if type_C == 1 { this.command_text = "Dish Title 1".into();  }
             let chief = get_CurrentCookingPid(None);
             if !is_null_empty(chief, None){
                 if type_C == 0 || type_C > 3 {
