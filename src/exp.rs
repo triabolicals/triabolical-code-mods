@@ -1,15 +1,15 @@
 use skyline::patching::Patch;
 use unity::prelude::*;
-use std::io::Write;
-use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
-use engage::gamevariable::*;
-use engage::gamedata::unit::Unit;
-use engage::gamedata::CapabilitySbyte2;
-use engage::force::*;
+use engage::{
+    menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}},
+    gameuserdata::*,
+    random::*,
+    gamevariable::*,
+    force::*,
+    gamedata::{*, unit::Unit, person::*, }
+};
 use crate::string::*;
 use crate::rng::*;
-use engage::gamedata::JobData;
-use engage::gameuserdata::GameUserData;
 pub const EXP_KEY: &str = "G_EXP_TYPE";
 pub struct ExpMod;
 impl ConfigBasicMenuItemSwitchMethods for ExpMod {
@@ -22,6 +22,7 @@ impl ConfigBasicMenuItemSwitchMethods for ExpMod {
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
+            if result == 6 { GameVariableManager::set_bool("勝利".into(), true); }
             return BasicMenuResult::se_cursor();
         } else {return BasicMenuResult::new(); }
     }
@@ -67,20 +68,8 @@ pub struct LevelUpSequnece {
     m_isClassChange: bool,
 }
 
-// Random Functions
-
-
-
-
-
-#[skyline::from_offset(0x023751b0)]
-pub fn random_getMinMax(this: &Random, min: i32, max: i32, method_info: OptionalMethod) -> i32;
-
 #[skyline::from_offset(0x2b4afa0)]
 pub fn GetAverageLevel(difficulty: i32, sortieCount: i32, method_info: OptionalMethod) -> i32;
-
-#[skyline::from_offset(0x01a3aba0)]
-pub fn Unit_LevelDown(this: &Unit, method_info: OptionalMethod);
 
 //hook to the function that normalized exp to 100 to remove the cap if rubberband mode, or random exp
 #[skyline::hook(offset = 0x01a39f60)]
@@ -92,14 +81,10 @@ pub fn normalizeExp(this: &Unit, exp: i32, method_info: OptionalMethod) -> i32 {
     else if typeC == 5 { return 999; }
     else if typeC == 6 { return 9999; }
     else { 
-        unsafe {
-            let luck_stat = unit_get_capability(this, 4, true, None);
-
-            let limit: i32 = luck_stat / 10 + 1;
-            let factor = random_getMinMax(random_get_Game(None), 0, limit, None);
-
-            return exp + (luck_stat + 1)*factor;
-        }
+        let luck_stat = this.get_capability( 4, true);
+        let limit: i32 = luck_stat / 10 + 1;
+        let factor = Random::get_game().get_min_max(0, limit);
+        return exp + (luck_stat + 1)*factor;
     }
 }
 
@@ -116,11 +101,11 @@ pub fn addExp(this: &mut UnitGrowSequence, method_info: OptionalMethod){
     deactivate_exp_bar( typeC == 2  );
     if typeC != 1 {
         if typeC == 4 {  this.m_SkillPoint = this.m_Exp;}
-        deactivate_exp_bar( this.m_SkillPoint == 0 && ( this.m_Exp == 0 || this.m_unit.m_Job.MaxLevel == this.m_unit.m_Level)  );
+        deactivate_exp_bar( this.m_SkillPoint == 0 && ( this.m_Exp == 0 || this.m_unit.m_Job.get_max_level() == this.m_unit.m_Level)  );
         call_original!(this, method_info); 
         return;
     }
-    if this.m_unit.m_Job.MaxLevel == this.m_unit.m_Level && this.m_SkillPoint == 0 {
+    if this.m_unit.m_Job.get_max_level() == this.m_unit.m_Level && this.m_SkillPoint == 0 {
         deactivate_exp_bar( true  );
         call_original!(this, method_info);
     }
@@ -143,17 +128,7 @@ pub fn addExp(this: &mut UnitGrowSequence, method_info: OptionalMethod){
         }
     }
 }
-#[unity::from_offset("App", "Unit", "GetCapability")]
-pub fn unit_get_capability(this: &Unit, type_: i32, calcEnhance: bool, method_info: OptionalMethod) -> i32;
 
-#[unity::from_offset("App", "Unit", "SetBaseCapability")]
-pub fn unit_set_base_capability(this: &Unit, index: i32, value: i32, method_info: OptionalMethod);
-
-#[skyline::from_offset(0x01a2ff20)]
-pub fn unit_get_capability_grow(this: &Unit, index: i32, is_autoGrow: bool, method_info: OptionalMethod) -> i32;
-
-#[skyline::from_offset(0x02054ae0)]
-pub fn base_job(this: &JobData, method_info: OptionalMethod) -> &CapabilitySbyte2;
 //  HP  Str Dex Spd Luck Def Mag Mdef Phys Sight Move
 #[skyline::from_offset(0x01a54d60)]
 pub fn get_HP(this: &Unit, method_info: OptionalMethod) -> i32;
@@ -168,56 +143,56 @@ pub fn SetBattleInfo(this: u64, engine: u64, unit: &Unit, typ_e: i32, text: &Il2
         call_original!(this, engine, unit, typ_e, text, method_info); 
         return;
     }
-    let force = unit.m_Force.unwrap().m_Type;
+    let force = unit.m_Force.unwrap().force_type;
     match typ_e {
         0 => {
-            grow = unit_get_capability_grow(unit, 0, false, None);
-            grow2 = unit_get_capability_grow(unit, 0, true, None);
+            grow = unit.get_capability_grow( 0, false);
+            grow2 = unit.get_capability_grow( 0, true);
             growth_rate_add = true;
         },
         8 => {
-            grow = unit_get_capability_grow(unit, 1, false, None);
-            grow2 = unit_get_capability_grow(unit, 1, true, None);
+            grow =unit.get_capability_grow( 1, false);
+            grow2 =unit.get_capability_grow( 1, true);
             growth_rate_add = true;
         },
         10 => {
-            grow = unit_get_capability_grow(unit, 2, false, None);
-            grow2 = unit_get_capability_grow(unit, 2, true, None);
+            grow =unit.get_capability_grow( 2, false);
+            grow2 = unit.get_capability_grow( 2, true);
             growth_rate_add = true;
         },
         7 => {
-            grow = unit_get_capability_grow(unit, 3, false, None);
-            grow2 = unit_get_capability_grow(unit, 3, true, None);
+            grow = unit.get_capability_grow( 3, false);
+            grow2 = unit.get_capability_grow( 3, true);
             growth_rate_add = true;
         },
         14 => {
-            grow = unit_get_capability_grow(unit, 4, false, None);
-            grow2 = unit_get_capability_grow(unit, 4, true, None);
+            grow = unit.get_capability_grow( 4, false);
+            grow2 = unit.get_capability_grow( 4, true);
             growth_rate_add = true;
         },
         12 => {
-            grow = unit_get_capability_grow(unit, 5, false, None);
-            grow2 = unit_get_capability_grow(unit, 5, true, None);
+            grow = unit.get_capability_grow( 5, false);
+            grow2 = unit.get_capability_grow( 5, true);
             growth_rate_add = true;
         },
         9 => {
-            grow = unit_get_capability_grow(unit, 6, false, None);
-            grow2 = unit_get_capability_grow(unit, 6, true, None);
+            grow = unit.get_capability_grow( 6, false);
+            grow2 = unit.get_capability_grow( 6, true);
             growth_rate_add = true;
         },
         13 => {
-            grow = unit_get_capability_grow(unit, 7, false, None);
-            grow2 = unit_get_capability_grow(unit, 7, true, None);
+            grow = unit.get_capability_grow( 7, false);
+            grow2 = unit.get_capability_grow( 7, true);
             growth_rate_add = true;
         },
         15 => {
-            grow = unit_get_capability_grow(unit, 8, false, None);
-            grow2 = unit_get_capability_grow(unit, 8, true, None);
+            grow = unit.get_capability_grow( 8, false);
+            grow2 = unit.get_capability_grow( 8, true);
             growth_rate_add = true;
         },
         16 => {
-            grow = unit_get_capability_grow(unit, 10, false, None);
-            grow2 = unit_get_capability_grow(unit, 10, true, None);
+            grow = unit.get_capability_grow( 10, false);
+            grow2 = unit.get_capability_grow( 10, true);
             growth_rate_add = true;
         }
         _ => { growth_rate_add = false; }
@@ -225,18 +200,18 @@ pub fn SetBattleInfo(this: u64, engine: u64, unit: &Unit, typ_e: i32, text: &Il2
     let mut OKO: &Il2CppString = "".into();
     let mut growth_str: &Il2CppString = "".into();
     if typ_e == 0 && force < 3 {
-        let hp = get_HP(unit, None);
+        let hp = unit.get_hp();
         let posion = get_position_stack(unit);
-        let phys = hp + unit_get_capability(unit, 5, true, None) - posion;
-        let phys2 = phys + unit_get_capability(unit, 5, true, None) - posion;
-        let phys4 = phys + 3*unit_get_capability(unit, 5, true, None) - 3*posion;
+        let phys = hp + unit.get_capability_grow(5, true) - posion;
+        let phys2 = phys + unit.get_capability_grow(5, true) - posion;
+        let phys4 = phys + 3*unit.get_capability_grow(5, true) - 3*posion;
 
         let phys_str: &Il2CppString = format!("\n{} {}: {} / {} / {}", get_mess_str("MID_SYS_Weapon_Attack").get_string().unwrap(), get_mess_str("MID_SYS_Dmg").get_string().unwrap(), 
         phys, phys2 / 2 + (phys2 % 2).signum(), phys4 / 4 + (phys4 % 4).signum()).into();
 
-        let mag = hp + unit_get_capability(unit, 7, true, None) - posion;
-        let mag2 = mag + unit_get_capability(unit, 7, true, None) - posion;
-        let mag4 = mag + 3*unit_get_capability(unit, 7, true, None) - 3*posion;
+        let mag = hp + unit.get_capability_grow(7, true) - posion;
+        let mag2 = mag + unit.get_capability_grow(7, true) - posion;
+        let mag4 = mag + 3*unit.get_capability_grow(7, true) - 3*posion;
 
         let mag_str: &Il2CppString = format!("\n{} {}: {} / {} / {}", get_mess_str("MID_SYS_Magic_Attack").get_string().unwrap(), get_mess_str("MID_SYS_Dmg").get_string().unwrap(), 
         mag, mag2 / 2 + (mag2 % 2).signum(), mag4 / 4 + (mag4 % 4).signum()).into();
@@ -258,46 +233,42 @@ pub fn SetBattleInfo(this: u64, engine: u64, unit: &Unit, typ_e: i32, text: &Il2
 //Function that does the level up and hooked it to do random level up type on 'Random'
 pub fn move_level_up(this: &mut Unit, isNegative: bool){
     unsafe {
-        let mut move_grow = unit_get_capability_grow(this, 10, false, None) + unit_get_capability_grow(this, 4, false, None) / 2; 
+        let mut move_grow = this.get_capability_grow( 10, false) + this.get_capability_grow( 4, false) / 2; 
         let mut move_change = 0;
         let mut new_move_cap: i32 = 0;
+        let job_base = this.m_Job.get_base();
         while move_grow > 99 {
             move_change += 1;
             move_grow -= 100;
         }
-        let rng = random_getMinMax(random_get_Game(None), 0, 100, None);
+        let game_rng = Random::get_game();
+        let rng = game_rng.get_min_max(0, 100);
         if  rng < move_grow {
             move_change += 1;
         }
-        let old_cap: i32 = unit_get_capability(this, 10, false, None) - base_job(this.m_Job, None).array.m_item[10] as i32;
-        if move_change == 0 { return; }
+        let old_cap: i32 = this.get_capability_grow(10, false) - job_base[10] as i32;
+
         if isNegative { new_move_cap = old_cap - move_change; }
         else { new_move_cap = old_cap + move_change; }
-        unit_set_base_capability(this, 10, new_move_cap, None);
+        this.set_base_capability( 10, new_move_cap );
 
-        let mut move_grow1 = unit_get_capability_grow(this, 9, false, None) + unit_get_capability_grow(this, 4, false, None) / 2; 
-        let mut move_change1 = 0;
-        let mut new_move_cap1: i32 = 0;
-        while move_grow1 > 99 {
-            move_change1 += 1;
-            move_grow1 -= 100;
+        let mut sight_grow = this.get_capability_grow( 9, false) + this.get_capability_grow( 4, false) / 2; 
+        let mut sight_change = 0;
+        let mut new_sight_cap: i32 = 0;
+        while sight_grow > 99 {
+            sight_change  += 1;
+            sight_grow -= 100;
         }
-        let rng1 = random_getMinMax(random_get_Game(None), 0, 100, None);
-        if  rng1 < move_grow1 {
-            move_change += 1;
+        let rng1 = game_rng.get_min_max(0, 100);
+        if  rng1 < sight_grow {
+            sight_change += 1;
         }
-        let old_cap1: i32 = unit_get_capability(this, 9, false, None) - base_job(this.m_Job, None).array.m_item[9] as i32;
-        if move_change1 == 0 { return; }
-        if isNegative { new_move_cap1 = old_cap1 - move_change1; }
-        else { new_move_cap1 = old_cap1 + move_change1; }
-        unit_set_base_capability(this, 9, new_move_cap1, None);
+        let old_sight_cap: i32 = this.get_capability(9, false) - job_base[9] as i32;
+        if isNegative { new_sight_cap  = old_sight_cap - sight_change ; }
+        else { new_sight_cap = old_sight_cap + sight_change ; }
+        this.set_base_capability( 9, new_sight_cap );
     }
 }
-
-
-
-#[skyline::from_offset(0x01a3a040)]
-pub fn Unit_LevelUP(this: &Unit, abort: i32, method_info: OptionalMethod);
 
 //Function that prepares the window for level up. using this to call the level up function multiple times for multiple level up
 #[skyline::hook(offset=0x01be1260)]
@@ -317,33 +288,34 @@ pub fn LevelUp_Prepare(this: &mut LevelUpSequnece, method_info: OptionalMethod){
 
     let mut count = 0;
     unsafe {
-    if typeC == 4 {
-        let luck = unit_get_capability(this.m_grow, 4, true, None);
-        for x in 0..nLevelUps+1 {
-            let rng = random_getMinMax(random_get_Game(None), 0, 100, None);
-            if count == 0 {
-                count += 1;
-                if rng < luck { continue; }
-                if rng < 100-luck {
-                    Unit_LevelDown(this.m_grow, None);
-                    move_level_up(this.m_grow, true);
+        if typeC == 4 {
+            let luck = this.m_grow.get_capability(4, true);
+            let game_rng = Random::get_game();
+            for x in 0..nLevelUps+1 {
+                let rng = game_rng.get_min_max(0, 100);
+                if count == 0 {
+                    count += 1;
+                    if rng < luck { continue; }
+                    if rng < 100-luck {
+                        this.m_grow.level_down();
+                        move_level_up(this.m_grow, true);
+                    }
                 }
-            }
-            else {
-                count += 1;
-                 if rng < luck {
-                    Unit_LevelUP(this.m_grow, 3, None);
+                else {
+                    count += 1;
+                    if rng < luck {
+                        this.m_grow.level_up(3);
                         move_level_up(this.m_grow, false);
                     }
                     else if rng < 2*luck {
-                        Unit_LevelDown(this.m_grow, None);
+                        this.m_grow.level_down();
                         move_level_up(this.m_grow, true);
                     }
                 }
             }
         }
         else if nLevelUps < 1 { return; } 
-        else { for x in 0..nLevelUps { Unit_LevelUP(this.m_grow, 3, None); } }
+        else { for x in 0..nLevelUps { this.m_grow.level_up(3); } }
     }
 }
 
@@ -356,7 +328,7 @@ pub fn unit_add_exp(this: &mut Unit, exp: i32, method_info: OptionalMethod){
         return;
     }
     let job = &this.m_Job;
-    let job_max_level = job.MaxLevel;
+    let job_max_level = job.get_max_level();
     let mut expPool = exp + (this.m_Exp as i32);
     let mut unit_level = this.m_Level;
     while 99 < expPool && unit_level < job_max_level {

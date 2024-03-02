@@ -3,7 +3,7 @@ use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 use engage::gamevariable::*;
 use engage::gamedata::unit::Unit;
-use engage::gamedata::CapabilitySbyte2;
+use engage::gamedata::person::CapabilitySbyte;
 use engage::force::*;
 use crate::string::*;
 use engage::gamedata::JobData;
@@ -97,7 +97,7 @@ pub fn arena_finish_training(this: &ArenaOrderSequence, method_info: OptionalMet
 
 pub struct ArenaMod;
 pub fn patchArena(){
-    GameVariableManager::make_entry_norewind(ARENA_KEY, 0);
+    GameVariableManager::make_entry(ARENA_KEY, 0);
     let active = GameVariableManager::get_bool(ARENA_KEY);
     if (active){
         let set_false = &[0x00, 0x00, 0x80, 0x52];
@@ -192,7 +192,7 @@ pub fn patchArena(){
     }
 }
 impl ConfigBasicMenuItemSwitchMethods for ArenaMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ }
+    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(ARENA_KEY, 0); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         GameVariableManager::make_entry(ARENA_KEY, 0);
         let active = GameVariableManager::get_bool(ARENA_KEY);

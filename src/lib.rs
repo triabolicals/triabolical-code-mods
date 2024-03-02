@@ -10,10 +10,10 @@ use cobapi::Event;
 use cobapi::SystemEvent;
 use unity::il2cpp::object::Array;
 use engage::gamedata::item::ItemData;
-use engage::gamedata::person::SkillArray;
+use engage::gamedata::skill::SkillArray;
 use crate::string::Mess_Get;
-use crate::character::person_get_AssetForce;
 pub static mut rigPlayer: bool = false;
+
 mod bgm;
 mod map;
 mod menus;
@@ -57,23 +57,33 @@ extern "C" fn load_settings(event: &Event<SystemEvent>) {
 */
 #[unity::class("App", "BattleInfo")]
 pub struct BattleInfo {}
-
+#[unity::class("App", "BattleInfoSide")]
+pub struct BattleInfoSide {
+    pub m_info: &'static BattleInfo,
+    pub m_side_type: i32,
+    pad: i32,
+    pub unit: Option<&'static Unit>,
+}
 #[unity::class("App", "BattleCalculator")]
 pub struct BattleCalculator {
     pub m_Mode: i32,
     pub m_info: &'static BattleInfo,
 
 }
+
 #[skyline::from_offset(0x01e7f750)]
 pub fn BattleInfo_GetUnit(this: &BattleInfo, index: i32,  method_info: OptionalMethod) -> &Unit; 
 
-#[skyline::hook(offset=0x02471060)]
-pub fn CalcAttack(this: &BattleCalculator, sideType: i32, method_info: OptionalMethod) -> bool {
+#[skyline::hook(offset=0x02470d60)]
+pub fn calc_action_hook(this: &BattleCalculator, side_type: i32, method_info: OptionalMethod) -> bool {
     unsafe {
         if GameVariableManager::get_number(rng::RNG_KEY) == 4 { 
-            let unit = BattleInfo_GetUnit(this.m_info, sideType, method_info);
+            Patch::in_text(0x01e8d12c).bytes(&[0x11, 0xa0, 0x13, 0x94]);
+            Patch::in_text(0x02375504).bytes(&[0x00, 0x08, 0x22, 0x1e]);
+            Patch::in_text(0x02375508).bytes(&[0x81, 0x01, 0x22, 0x1e]);
+            let unit = BattleInfo_GetUnit(this.m_info, side_type, method_info);
             if unit.m_Force.is_some() {
-                if person_get_AssetForce(unit.person, None) == 0 || unit.m_Force.unwrap().m_Type == 0 { 
+                if unit.person.get_asset_force() == 0 || unit.m_Force.unwrap().force_type == 0 { 
                     Patch::in_text(0x01e8d12c).bytes(&[0x20, 0x00, 0x80, 0x52]);
                     Patch::in_text(0x02375508).bytes(&[0x01,0x10, 0x2E, 0x1E]);
                 }
@@ -83,12 +93,12 @@ pub fn CalcAttack(this: &BattleCalculator, sideType: i32, method_info: OptionalM
                 }
             }
         }
-        let result = call_original!(this, sideType, method_info);
-        Patch::in_text(0x01e8d12c).bytes(&[0x11, 0xa0, 0x13, 0x94]);
-        Patch::in_text(0x02375504).bytes(&[0x00,0x08, 0x22, 0x1e]);
-        Patch::in_text(0x02375508).bytes(&[0x81, 0x01, 0x22, 0x1e]);
-        return result;
     }
+    let result = call_original!(this, side_type, method_info);
+    Patch::in_text(0x01e8d12c).bytes(&[0x11, 0xa0, 0x13, 0x94]);
+    Patch::in_text(0x02375504).bytes(&[0x00, 0x08, 0x22, 0x1e]);
+    Patch::in_text(0x02375508).bytes(&[0x81, 0x01, 0x22, 0x1e]);
+    return result;
 }
 #[skyline::hook(offset=0x01e8d420)]
 pub fn RandomCheckHit(this: i32, method_info: OptionalMethod) -> bool {
@@ -171,9 +181,10 @@ pub fn main() {
     gift::gift_install(); //Gift Settings
     //cobapi::register_system_event_handler(load_settings);
     skyline::install_hooks!(string::HelpParamSetter_SetItemData, bgm::ChangeBGM, bgm::ChangeBGM2, level::LevelUpWindow_SetupParams);
-    skyline::install_hooks!(CalcAttack);
+    skyline::install_hooks!(calc_action_hook);
    // skyline::install_hooks!(hub::well_items, exp::hybrid_hook, exp::prob_100);
-    skyline::install_hooks!(rng::hybrid_hook, exp::SetBattleInfo, load_settings1, menus::GmapMenu_SubShopMenu_CreateBind, arena::arena_finish_training, menus::NoticeBoardSequence_CreateBind,menus::hub_menu_create_bind);
+    skyline::install_hooks!( menus::GmapMenu_SubShopMenu_CreateBind,menus::NoticeBoardSequence_CreateBind,menus::hub_menu_create_bind);
+    skyline::install_hooks!(rng::hybrid_hook, exp::SetBattleInfo, load_settings1, arena::arena_finish_training );
     skyline::install_hooks!(level::Set__Level, level::UnitInfo_SetLevel, exp::addExp, exp::normalizeExp, exp::LevelUp_Prepare, exp::unit_add_exp);
     println!("triabolical code mods are loaded");
 

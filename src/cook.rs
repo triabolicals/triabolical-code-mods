@@ -1,46 +1,33 @@
 use skyline::patching::Patch;
 use unity::prelude::*;
-use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
-use engage::{gamevariable::*,gamedata::*};
-pub const COOK_KEY: &str = "G_CHIEF";
+use engage::{
+    gamevariable::*,gamedata::*,
+    menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}},
+    hub::HubUtil,
+    gamedata::cook::*,
+};
+pub const COOK_KEY: &str = "G_CHEF";
 use crate::string::*;
+
 pub struct CookMod;
-
-#[unity::class("App", "TasteConditionData")]
-pub struct TasteConditionData {}
-impl Gamedata for TasteConditionData {}
-
-#[unity::from_offset("App","TasteConditionData", "GetName")]
-pub fn TasteCondition_GetName(this: &TasteConditionData, method_info: OptionalMethod) -> Option<&Il2CppString>;
-
-#[unity::from_offset("App","TasteData", "GetName")]
-pub fn Taste_GetName(this: &TasteData, method_info: OptionalMethod) -> &'static Il2CppString;
-
-#[unity::from_offset("App", "TasteData", "GetGradeString")]
-pub fn Taste_GetGrade(this: &TasteData, method_info: OptionalMethod) -> &'static Il2CppString;
-
-#[skyline::from_offset(0x02a64450)]
-pub fn get_CurrentCookingPid(method_info: OptionalMethod) -> &'static Il2CppString;
-
-
 pub fn get_cook_taste(pid: &Il2CppString, kind: i32) -> &'static Il2CppString {
     unsafe {
-    let data = CookData::get(&pid.get_string().unwrap());
-    let mut taste: Option<&TasteData> = None;
-    if data.is_some() {
-        if kind == 0 { taste = TasteData::get(&data.unwrap().taste1.get_string().unwrap()); }
-        else if kind == 1 {
-            taste = TasteData::get(&data.unwrap().taste2.get_string().unwrap());
+        let data = CookData::get(&pid.get_string().unwrap());
+        let mut taste: Option<&TasteData> = None;
+        if data.is_some() {
+            if kind == 0 { taste = TasteData::get(&data.unwrap().taste1.get_string().unwrap()); }
+            else if kind == 1 {
+                taste = TasteData::get(&data.unwrap().taste2.get_string().unwrap());
+            }
+            else if kind == 2 {
+                taste = TasteData::get(&data.unwrap().taste3.get_string().unwrap());
+            }
         }
-        else if kind == 2 {
-            taste = TasteData::get(&data.unwrap().taste3.get_string().unwrap());
+        if taste.is_some() {
+            let grade = taste.unwrap().get_grade();
+            let name = taste.unwrap().get_name();
+            return concat_strings3(grade, " - ".into(), name, None);
         }
-    }
-    if taste.is_some() {
-        let grade = Taste_GetGrade(taste.unwrap(), None);
-        let name = Taste_GetName(taste.unwrap(), None);
-        return concat_strings3(grade, " - ".into(), name, None);
-    }
         return "N/A".into();
     }
 }
@@ -58,47 +45,47 @@ pub fn get_cook_taste_description(pid: &Il2CppString, kind: i32) -> &'static Il2
         let Tasty = taste.unwrap();
         let condition = TasteConditionData::get(&Tasty.cid.get_string().unwrap());
         if condition.is_some() {
-            let label = TasteCondition_GetName(condition.unwrap(), None);
+            let label = condition.unwrap().get_name();
             if label.is_some() {
                 let bonus: &Il2CppString = format!("{},", label.unwrap().get_string().unwrap()).into();
                 if Tasty.augment > 0 {
                     let aug1: &Il2CppString = format!(" +{} dish stats", Tasty.augment).into();
-                    if Tasty.otherEnhance > 0 {
-                        let aug2: &Il2CppString = format!("/+{} one non-dish Stat", Tasty.otherEnhance).into();
+                    if Tasty.other_enhance > 0 {
+                        let aug2: &Il2CppString = format!("/+{} one non-dish Stat", Tasty.other_enhance).into();
                         return concat_strings3(bonus, aug1, aug2, None);
                     }
-                    else if Tasty.otherEnhance < 0 {
-                        let aug2: &Il2CppString = format!("/{}", Tasty.otherEnhance).into();
+                    else if Tasty.other_enhance < 0 {
+                        let aug2: &Il2CppString = format!("/{}", Tasty.other_enhance).into();
                         return concat_strings3(bonus, aug1, aug2, None);
                     }
                     else { return concat_strings(bonus, aug1, None); }
                 }
                 else if Tasty.augment < 0 {
                     let aug1: &Il2CppString = format!(" {} dish stats", Tasty.augment).into();
-                    if Tasty.otherEnhance > 0 {
-                        let aug2: &Il2CppString = format!("/+{} one non-dish Stat", Tasty.otherEnhance).into();
+                    if Tasty.other_enhance > 0 {
+                        let aug2: &Il2CppString = format!("/+{} one non-dish Stat", Tasty.other_enhance).into();
                         return concat_strings3(bonus, aug1, aug2, None);
                     }
-                    else if Tasty.otherEnhance < 0 {
-                        let aug2: &Il2CppString = format!("/{} one non-dish Stat", Tasty.otherEnhance).into();
+                    else if Tasty.other_enhance < 0 {
+                        let aug2: &Il2CppString = format!("/{} one non-dish Stat", Tasty.other_enhance).into();
                         return concat_strings3(bonus, aug1, aug2, None);
                     }
                     else { return concat_strings(bonus, aug1, None); }
                 }
-                if Tasty.otherEnhance > 0 {
-                    let aug1: &Il2CppString = format!(" +{} one non-dish Stat", Tasty.otherEnhance).into();
+                if Tasty.other_enhance > 0 {
+                    let aug1: &Il2CppString = format!(" +{} one non-dish Stat", Tasty.other_enhance).into();
                     return concat_strings(bonus, aug1, None);
                 }
-                else if Tasty.otherEnhance < 0 {
-                    let aug1: &Il2CppString = format!(" {} one non-dish Stat", Tasty.otherEnhance).into();
+                else if Tasty.other_enhance < 0 {
+                    let aug1: &Il2CppString = format!(" {} one non-dish Stat", Tasty.other_enhance).into();
                     return concat_strings(bonus, aug1, None);
                 }
                 else {
                     let mut count = 0;
                     let mut stat_str_total: &Il2CppString = " ".into();
                     for i in 0..8 {
-                        if Tasty.Enhanced.array.m_item[i] != 0 {
-                            let stat = get_stat_with_value(i, Tasty.Enhanced.array.m_item[i]);
+                        if Tasty.enhanced[i] != 0 {
+                            let stat = get_stat_with_value(i, Tasty.enhanced[i]);
                             if count == 0 { stat_str_total = stat; }
                             else { stat_str_total = concat_strings3(stat_str_total, ", ".into(), stat, None); }
                             count += 1;
@@ -110,42 +97,42 @@ pub fn get_cook_taste_description(pid: &Il2CppString, kind: i32) -> &'static Il2
             else {
                 if Tasty.augment > 0 {
                     let aug1: &Il2CppString = format!("+{} dish stats", Tasty.augment).into();
-                    if Tasty.otherEnhance > 0 {
-                        let aug2: &Il2CppString = format!("/+{} one non-dish Stat", Tasty.otherEnhance).into();
+                    if Tasty.other_enhance > 0 {
+                        let aug2: &Il2CppString = format!("/+{} one non-dish Stat", Tasty.other_enhance).into();
                         return concat_strings(aug1, aug2, None);
                     }
-                    else if Tasty.otherEnhance < 0 {
-                        let aug2: &Il2CppString = format!("/{} one non-dish Stat", Tasty.otherEnhance).into();
+                    else if Tasty.other_enhance < 0 {
+                        let aug2: &Il2CppString = format!("/{} one non-dish Stat", Tasty.other_enhance).into();
                         return concat_strings(aug1, aug2, None);
                     }
                     else { return aug1; }
                 }
                 else if Tasty.augment < 0 {
                     let aug1: &Il2CppString = format!(" {} dish stats", Tasty.augment).into();
-                    if Tasty.otherEnhance > 0 {
-                        let aug2: &Il2CppString = format!("/+{} one non-dish Stat", Tasty.otherEnhance).into();
+                    if Tasty.other_enhance > 0 {
+                        let aug2: &Il2CppString = format!("/+{} one non-dish Stat", Tasty.other_enhance).into();
                         return concat_strings(aug1, aug2, None);
                     }
-                    else if Tasty.otherEnhance < 0 {
-                        let aug2: &Il2CppString = format!("/{} one non-dish Stat", Tasty.otherEnhance).into();
+                    else if Tasty.other_enhance < 0 {
+                        let aug2: &Il2CppString = format!("/{} one non-dish Stat", Tasty.other_enhance).into();
                         return concat_strings(aug1, aug2, None);
                     }
                     else { return aug1; }
                 }
-                if Tasty.otherEnhance > 0 {
-                    let aug1: &Il2CppString = format!(" +{} one non-dish Stat", Tasty.otherEnhance).into();
+                if Tasty.other_enhance > 0 {
+                    let aug1: &Il2CppString = format!(" +{} one non-dish Stat", Tasty.other_enhance).into();
                     return aug1;
                 }
-                else if Tasty.otherEnhance < 0 {
-                    let aug1: &Il2CppString = format!(" {} one non-dish Stat", Tasty.otherEnhance).into();
+                else if Tasty.other_enhance < 0 {
+                    let aug1: &Il2CppString = format!(" {} one non-dish Stat", Tasty.other_enhance).into();
                     return aug1;
                 }
                 else {
                     let mut count = 0;
                     let mut stat_str_total: &Il2CppString = " ".into();
                     for i in 0..8 {
-                        if Tasty.Enhanced.array.m_item[i] != 0 {
-                            let stat = get_stat_with_value(i, Tasty.Enhanced.array.m_item[i]);
+                        if Tasty.enhanced[i] != 0 {
+                            let stat = get_stat_with_value(i, Tasty.enhanced[i]);
                             if count == 0 { stat_str_total = stat; }
                             else { stat_str_total = concat_strings3(stat_str_total, ", ".into(), stat, None);     }
                             count += 1;
@@ -180,7 +167,7 @@ pub fn patchCook(){
 }
 
 impl ConfigBasicMenuItemSwitchMethods for CookMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){  }
+    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(COOK_KEY, 0); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle =  GameVariableManager::get_number(COOK_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 5, 1);
@@ -204,11 +191,11 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
         else if type_C == 1 { this.help_text = "Dish will have the Chef's 1st dish title.".into();  }
         unsafe {
             Mess_Load("Cook".into(), None);
-            let chief = get_CurrentCookingPid(None);
-            if !is_null_empty(chief, None){
-                if type_C == 0  { this.help_text = concat_strings("Dish titles are determined randomly. Chef ".into(), pid_to_name(chief), None); return; }
+            let chef = HubUtil::get_current_cooking_pid();
+            if chef.is_some() {
+                if type_C == 0  { this.help_text = concat_strings("Dish titles are determined randomly. Chef ".into(), pid_to_name(chef.unwrap()), None); return; }
                 else if type_C > 3 { return; }
-                this.help_text = get_cook_taste_description(chief, type_C - 1);
+                this.help_text = get_cook_taste_description(chef.unwrap(), type_C - 1);
             }
         }
     }
@@ -223,26 +210,22 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
             else if type_C == 3 { this.command_text = "Dish Title 3".into(); }
             else if type_C == 2 { this.command_text = "Dish Title 2".into();  }
             else if type_C == 1 { this.command_text = "Dish Title 1".into();  }
-            let chief = get_CurrentCookingPid(None);
-            if !is_null_empty(chief, None){
+            let chef = HubUtil::get_current_cooking_pid();
+            if chef.is_some(){
                 if type_C == 0 || type_C > 3 {
                     return;
                 }
-                    this.command_text = get_cook_taste(chief, type_C - 1);
-                    this.help_text = get_cook_taste_description(chief, type_C - 1);
+                this.command_text = get_cook_taste(chef.unwrap(), type_C - 1);
+                this.help_text = get_cook_taste_description(chef.unwrap(), type_C - 1);
             }
-
-            
-
-
+        }
     }
-}
 }
 #[no_mangle]
 extern "C" fn cook() -> &'static mut ConfigBasicMenuItem { 
     unsafe {
-    let str12 = concat_strings3( Mess_Get("MID_Hub_CafeTerrace_CookMenu".into(), None), " ".into(), Mess_Get("MID_Hub_CafeTerrace_Cook_Workmanship".into(), None), None);
-    ConfigBasicMenuItem::new_switch::<CookMod>(str12.get_string().unwrap())
+        let str12 = concat_strings3( Mess_Get("MID_Hub_CafeTerrace_CookMenu".into(), None), " ".into(), Mess_Get("MID_Hub_CafeTerrace_Cook_Workmanship".into(), None), None);
+        ConfigBasicMenuItem::new_switch::<CookMod>(str12.get_string().unwrap())
     }
  }
 

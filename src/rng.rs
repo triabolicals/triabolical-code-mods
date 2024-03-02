@@ -1,9 +1,7 @@
 use skyline::patching::Patch;
 use unity::prelude::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
-use engage::gamevariable::*;
-use engage::gamedata::unit::Unit;
-use engage::force::*;
+use engage::{gamedata::unit::Unit, gamevariable::*, random::*, force::*};
 use crate::string::*;
 use engage::gamedata::JobData;
 use engage::gameuserdata::GameUserData;
@@ -141,14 +139,6 @@ pub fn rng_install(){
     cobapi::install_game_setting(RNG);
     cobapi::install_game_setting(Smash);
 }
-
-#[unity::class("App", "Random")]
-pub struct Random {
-    pub seed1: u32,
-    pub seed2: u32,
-    pub seed3: u32,
-    pub seed4: u32,
-}
 pub fn copy_seed(src: &Random, dst: &mut Random){
     dst.seed1 = src.seed1;
     dst.seed2 = src.seed2;
@@ -156,27 +146,21 @@ pub fn copy_seed(src: &Random, dst: &mut Random){
     dst.seed4 = src.seed4;
 }
 
-#[skyline::from_offset(0x02375170)]
-pub fn random_get_value(this: &Random, num: i32, method_info: OptionalMethod) -> i32;
-
-#[unity::from_offset("App", "Random", "get_Game")]
-pub fn random_get_Game(method_info: OptionalMethod) -> &'static Random;
-
 #[skyline::hook(offset=0x01e8d0e0)]
 pub fn hybrid_hook(ratio: i32, method_info: OptionalMethod) -> bool {
     if GameVariableManager::get_number(RNG_KEY) == 6 {
         unsafe {
-            let rng = random_get_Game(None);
-            let value1 = random_get_value(rng, 100, None);
-            let value2 = random_get_value(rng, 100, None);
+            let rng = Random::get_game();
+            let value1 = rng.get_value(100);
+            let value2 = rng.get_value(100);
             return value1 + value2 <= 2*ratio
         }
 
     }
     else if GameVariableManager::get_number(RNG_KEY) == 5 {
         unsafe {
-            let rng = random_get_Game(None);
-            let value1 = random_get_value(rng, 100, None);
+            let rng = Random::get_game();
+            let value1 = rng.get_value(100);
             return value1 <= ratio;
         }
     }

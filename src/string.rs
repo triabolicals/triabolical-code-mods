@@ -1,13 +1,12 @@
 use skyline::patching::Patch;
 use unity::prelude::*;
 use crate::level::*;
-use engage::gamedata::person::SkillArray;
-use engage::gamedata::item::ItemData;
-use engage::gamedata::{*, unit::*};
+use engage::gamedata::{item::*, skill::{SkillData, SkillArray}, unit::*};
 use engage::{gamevariable::*,gamedata::*};
 
 pub const MID_STATS : &[&str] = &["MID_SYS_HP", "MID_SYS_Str", "MID_SYS_Tec", "MID_SYS_Spd", "MID_SYS_Lck", "MID_SYS_Def", "MID_SYS_Mag", "MID_SYS_Res"];
 pub const EFFECTIVE_SIDS : &[&str] = &["SID_馬特効", "SID_鎧特効", "SID_飛行特効", "SID_竜特効", "SID_邪竜特効", "SID_異形特効" ];
+
 #[skyline::from_offset(0x01bdbc80)]
 pub fn get_lang(method_info: OptionalMethod) -> i32;
 
@@ -46,24 +45,6 @@ pub fn TMP_Text_set_text(this: &TextMeshProUGUI, value: &Il2CppString, method_in
 #[skyline::from_offset(0x0215a8b0)]
 pub fn HelpParamSetter_SetFixedText(this: &HelpParamSetter, frame: u64, text: &Il2CppString, method_info: OptionalMethod);
 
-#[skyline::from_offset(0x02487990)]
-pub fn skillarray_find(this: &SkillArray, sid: &Il2CppString, method_info: OptionalMethod) -> Option<&'static SkillData>;
-
-#[unity::from_offset("App", "UnitItem", "GetPower")]
-pub fn UnitItem_GetPower(this: &UnitItem, method_info: OptionalMethod) -> i32;
-
-#[unity::from_offset("App", "UnitItem", "GetEquipSkills")]
-pub fn UnitItem_GetEquipSkills(this: &UnitItem, method_info: OptionalMethod) -> Option<&SkillArray>;
-
-#[skyline::from_offset(0x01a35520)]
-pub fn Unit_has_skill(this: &Unit, skill: &SkillData, method_info: OptionalMethod) -> bool;
-
-#[skyline::from_offset(0x01a35540)]
-pub fn Unit_has_skill_sid(this: &Unit, sid: &Il2CppString, method_info: OptionalMethod) -> bool;
-
-#[skyline::from_offset(0x01a23a40)]
-pub fn Unit_is_enchantment(this: &Unit, method_info: OptionalMethod) -> bool;
-
 // MID_SYS_Mt
 #[unity::class("App", "HelpParamSetter")]
 pub struct HelpParamSetter {
@@ -76,11 +57,12 @@ pub struct HelpParamSetter {
 
 pub fn check_effectiveness(item: &UnitItem) -> i32 {
     unsafe {
-        let skill = UnitItem_GetEquipSkills(item, None);
-        if skill.is_some() {
+        let equipped_skills = item.get_equipped_skills();
+        if equipped_skills.is_some() {
+            let skills = equipped_skills.unwrap();
             for sid in EFFECTIVE_SIDS {
-                if skillarray_find(skill.unwrap(), sid.into(), None).is_some() {
-                    let eff = skillarray_find(skill.unwrap(), sid.into(), None).unwrap().efficacy_value;
+                if skills.find_sid(sid.into()).is_some() {
+                    let eff = skills.find_sid(sid.into()).unwrap().get_efficacy_value();
                     return eff;
                 }
             }
@@ -89,54 +71,49 @@ pub fn check_effectiveness(item: &UnitItem) -> i32 {
     return 0;
 }
 pub fn get_position_stack(unit: &Unit) -> i32 {
-    unsafe {
-    if Unit_has_skill_sid(unit, "SID_劇毒".into(), None) { return 5; }
-    else if Unit_has_skill_sid(unit, "SID_猛毒".into(), None) { return 3; }
-    else if Unit_has_skill_sid(unit, "SID_毒".into(), None) { return 1; }
-    }
+    if unit.has_sid("SID_劇毒".into()) { return 5; }
+    else if unit.has_sid("SID_猛毒".into()) { return 3; }
+    else if unit.has_sid("SID_毒".into()) { return 1; }    
     return 0;
-
-
-
 }
 pub fn check_effectiveness_unit(unit: &Unit, item: &UnitItem) -> i32 {
     unsafe {
-        let item_equip_skills = UnitItem_GetEquipSkills(item, None);
+        let item_equip_skills = item.get_equipped_skills();
         if item_equip_skills.is_some() {
             let item_skills = item_equip_skills.unwrap();
             //
-            if Unit_has_skill_sid(unit, "SID_邪竜特効変化".into(), None) && Unit_has_skill_sid(unit, "SID_邪竜特効".into(), None) {
+            if unit.has_sid("SID_邪竜特効変化".into()) && unit.has_sid("SID_邪竜特効".into()) {
                 let mut other_effective = 0; 
                 println!("I have Holy Aura");
                 //Pure Water Enchant
-                if Unit_has_skill_sid(unit, "SID_異形特効".into(), None) && Unit_has_skill_sid(unit, "SID_EN_聖水_発動演出".into(), None) {
+                if unit.has_sid("SID_異形特効".into()) && unit.has_sid("SID_EN_聖水_発動演出".into()) {
                     println!("I have Holy Aura and Pure Water Enchant");
-                    return SkillData::get("SID_邪竜特効").unwrap().efficacy_value + SkillData::get("SID_異形特効").unwrap().efficacy_value;
+                    return SkillData::get("SID_邪竜特効").unwrap().get_efficacy_value() + SkillData::get("SID_異形特効").unwrap().get_efficacy_value();
                 }
                 for sid in EFFECTIVE_SIDS {
                     if *sid == "SID_邪竜特効" { continue; }
-                    if skillarray_find(item_skills, sid.into(), None).is_some() {
-                        other_effective = SkillData::get(sid).unwrap().efficacy_value;
+                    if item_skills.find_sid(sid.into()).is_some() {
+                        other_effective = SkillData::get(sid).unwrap().get_efficacy_value();
                         println!("I have Holy Aura and Weapon Effectiviness");
                     }
                 }
-                return SkillData::get("SID_邪竜特効").unwrap().efficacy_value + other_effective;
+                return SkillData::get("SID_邪竜特効").unwrap().get_efficacy_value() + other_effective;
             }
-            if Unit_has_skill_sid(unit, "SID_異形特効".into(), None) && Unit_has_skill_sid(unit, "SID_EN_聖水_発動演出".into(), None) {
-                return SkillData::get("SID_異形特効").unwrap().efficacy_value;
+            if unit.has_sid("SID_異形特効".into()) && unit.has_sid("SID_EN_聖水_発動演出".into()) {
+                return SkillData::get("SID_異形特効").unwrap().get_efficacy_value();
             }
             for sid in EFFECTIVE_SIDS {
-                if skillarray_find(item_skills, sid.into(), None).is_some() && Unit_has_skill_sid(unit, sid.into(), None) {
-                    return SkillData::get(sid).unwrap().efficacy_value;
+                if item_skills.find_sid(sid.into()).is_some() && unit.has_sid(sid.into()) {
+                    return SkillData::get(sid).unwrap().get_efficacy_value();
                 }
             }
         }
         else {
-            if Unit_has_skill_sid(unit, "SID_邪竜特効変化".into(), None) {
-                return SkillData::get("SID_邪竜特効").unwrap().efficacy_value;
+            if unit.has_sid("SID_邪竜特効変化".into()) {
+                return SkillData::get("SID_邪竜特効").unwrap().get_efficacy_value();
             }
-            if Unit_has_skill_sid(unit, "SID_異形特効".into(), None) && Unit_has_skill_sid(unit, "SID_EN_聖水_発動演出".into(), None) {
-                return SkillData::get("SID_異形特効").unwrap().efficacy_value;
+            if unit.has_sid("SID_異形特効".into()) && unit.has_sid("SID_EN_聖水_発動演出".into()) {
+                return SkillData::get("SID_異形特効").unwrap().get_efficacy_value();
             }
         }
     }
@@ -149,7 +126,7 @@ pub fn HelpParamSetter_SetItemData(this: &HelpParamSetter, frame: u64, data: Opt
     if data.is_some() && item.is_some() {
         if data.unwrap().usetype == 1  {
             unsafe {
-                let power = UnitItem_GetPower(item.unwrap(), None);
+                let power = item.unwrap().get_power();
                 let power0: i32  = data.unwrap().power.into();
                 let text = TMP_Text_get_text(&this.m_ContextsText, None);
                 let mut power_string: &Il2CppString = format!(": {}\n", power0).into();

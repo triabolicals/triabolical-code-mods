@@ -67,13 +67,9 @@ pub fn UnitInfo_SetLevel(this: &UnitInfoParamSetter, unit: Option<&Unit>, x: i32
             unsafe {
                 GameVariableManager::make_entry_norewind(LEVEL_DIS_KEY, 0);
                 let result = GameVariableManager::get_bool(LEVEL_DIS_KEY);
-                let enLevel = unit_GetEnhancedLevel(p, None);
+                let enLevel = p.get_enchanced_level();
                 let mut displayed_level = enLevel;
                 if result { 
-                    if p.m_InternalLevel < 0 {
-                        let new_internal_level = -1*p.m_InternalLevel as i32;
-                        unit_set_internal_level(p, new_internal_level, None);
-                    }
                     if p.m_InternalLevel >= 0 {
                         displayed_level = enLevel + (p.m_InternalLevel as i32);
                     }
@@ -101,10 +97,10 @@ pub fn Set__Level(this: &UnitStatusSetter, unit: &Unit, unit_no_enhance: &Unit, 
     let result = GameVariableManager::get_bool(LEVEL_DIS_KEY);
 
     unsafe {
-        let enLevel = unit_GetEnhancedLevel(unit, None);
-        let no_enLevel = unit_GetEnhancedLevel(unit_no_enhance, None);
+        let enLevel = unit.get_enchanced_level();
+        let no_enLevel = unit_no_enhance.get_enchanced_level();
         let unit_level = unit_no_enhance.m_Level;
-        let max_level = jobdata_get_max_level(unit_no_enhance.m_Job, None);
+        let max_level = unit_no_enhance.m_Job.get_max_level();
         let boost: i32 = (no_enLevel < enLevel) as i32;
         let at_limit: bool = max_level <= unit_level;
         let displayed_level = enLevel;
@@ -176,7 +172,7 @@ pub fn patchGrowth(){
 }
 pub struct GrowthMod;
 impl ConfigBasicMenuItemSwitchMethods for  GrowthMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ }
+    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(GROWTH_KEY, 0); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle =  GameVariableManager::get_number(GROWTH_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 3, 1);
@@ -214,7 +210,7 @@ impl ConfigBasicMenuItemSwitchMethods for  GrowthMod {
 }
 pub struct LevelMod;
 impl ConfigBasicMenuItemSwitchMethods for LevelMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){  }
+    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(LEVEL_DIS_KEY, 0); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         GameVariableManager::make_entry(LEVEL_DIS_KEY, 0);
         let toggle = GameVariableManager::get_bool(LEVEL_DIS_KEY);
