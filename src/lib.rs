@@ -1,18 +1,11 @@
 #![feature(lazy_cell, ptr_sub_ptr)]
-use skyline::patching::Patch;
 use unity::prelude::*;
-use unity::{il2cpp::class::Il2CppRGCTXData, prelude::*};
-use engage::gamedata::{*, unit::*};
-use engage::gameuserdata::GameUserData;
-use engage::gameuserdata::*;
-use engage::gamevariable::GameVariableManager;
-use cobapi::Event;
-use cobapi::SystemEvent;
-use unity::il2cpp::object::Array;
-use engage::gamedata::item::ItemData;
-use engage::gamedata::skill::SkillArray;
-use crate::string::Mess_Get;
-pub static mut rigPlayer: bool = false;
+use skyline::patching::Patch;
+use engage::{
+    gamedata::unit::*,
+    gamevariable::GameVariableManager,
+};
+use cobapi::{Event, SystemEvent};
 
 mod bgm;
 mod map;
@@ -29,34 +22,56 @@ mod gift;
 mod character;
 mod string;
 
-/* 
-#[no_mangle]
-extern "C" fn load_settings(event: &Event<SystemEvent>) {
+pub fn create_variables() {
+    GameVariableManager::make_entry(level::LEVEL_DIS_KEY, 0);
+    GameVariableManager::make_entry(level::GROWTH_KEY, 0);
+    GameVariableManager::make_entry(bgm::BGM_KEY, 0);
+    GameVariableManager::make_entry(character::CHARACTER_KEY, 0);
+    GameVariableManager::make_entry(rng::RNG_KEY, 0);
+    GameVariableManager::make_entry(rng::SMASH_KEY, 0);
+    GameVariableManager::make_entry(cook::COOK_KEY, 0);
+    GameVariableManager::make_entry(gift::GIFT_KEY, 0);
+    GameVariableManager::make_entry(exp::EXP_KEY, 0);
+    GameVariableManager::make_entry(cutscene::CUTSCENES_KEY, 0);
+    GameVariableManager::make_entry(arena::ARENA_KEY, 0);
+    GameVariableManager::make_entry(support::SUPPORT_KEY, 0);
+    GameVariableManager::make_entry(map::MAP_KEY, 0);
+    character::get_lueur_gender();
+    character::change_characters();
+}
+pub fn patch_all(){
+    gift::patch_gift();
+    rng::patch_rng();
+    support::patch_support();
+    cutscene::patch_cutscenes();
+    map::patch_map();
+    rng::patch_smash();
+    arena::patch_arena();
+    cook::patch_cook();
+    bgm::patch_imm_bgm();
+    level::patch_growth();
+}
+extern "C" fn create_settings(event: &Event<SystemEvent>) {
     if let Event::Args(ev) = event {
         match ev {
-            SystemEvent::CatalogLoaded => println!("If you only care about knowing when files have been added to the game, handle it here."),
-            SystemEvent::SaveLoaded { slot_id } => {
-                println!("The slot being loaded was #{}", slot_id);
-                rng::patchRNG();
-                support::patchSupport();
-                cutscene::patchCutscenes();
-                map::patchMap();
-                arena::patchArena();
-                cook::patchCook();
-                level::patchGrowth();
-                character::changeCharacters();
-            },
-            // This syntax means you do not intend to deal with the other events and will do nothing if they are received.
-            _ => (),
+            SystemEvent::ProcInstJump {proc, label } => {
+                if proc.hashcode == -1912552174 && *label == 28 {
+                    create_variables();
+                    patch_all();
+                }
+                if proc.hashcode == -1118443598 && *label == 0 {
+                    support::update_reliances();
+                }
+            }
+            _ => {},
         }
     } 
-    else { 
-        println!("We received a missing event, and we don't care!");
-     }
+    else {  println!("We received a missing event, and we don't care!"); }
 }
-*/
+
 #[unity::class("App", "BattleInfo")]
 pub struct BattleInfo {}
+
 #[unity::class("App", "BattleInfoSide")]
 pub struct BattleInfoSide {
     pub m_info: &'static BattleInfo,
@@ -66,86 +81,53 @@ pub struct BattleInfoSide {
 }
 #[unity::class("App", "BattleCalculator")]
 pub struct BattleCalculator {
-    pub m_Mode: i32,
+    pub mode: i32,
     pub m_info: &'static BattleInfo,
 
 }
 
 #[skyline::from_offset(0x01e7f750)]
-pub fn BattleInfo_GetUnit(this: &BattleInfo, index: i32,  method_info: OptionalMethod) -> &Unit; 
+pub fn battle_info_get_unit(this: &BattleInfo, index: i32,  method_info: OptionalMethod) -> &Unit; 
 
 #[skyline::hook(offset=0x02470d60)]
 pub fn calc_action_hook(this: &BattleCalculator, side_type: i32, method_info: OptionalMethod) -> bool {
     unsafe {
         if GameVariableManager::get_number(rng::RNG_KEY) == 4 { 
-            Patch::in_text(0x01e8d12c).bytes(&[0x11, 0xa0, 0x13, 0x94]);
-            Patch::in_text(0x02375504).bytes(&[0x00, 0x08, 0x22, 0x1e]);
-            Patch::in_text(0x02375508).bytes(&[0x81, 0x01, 0x22, 0x1e]);
-            let unit = BattleInfo_GetUnit(this.m_info, side_type, method_info);
-            if unit.m_Force.is_some() {
-                if unit.person.get_asset_force() == 0 || unit.m_Force.unwrap().force_type == 0 { 
-                    Patch::in_text(0x01e8d12c).bytes(&[0x20, 0x00, 0x80, 0x52]);
-                    Patch::in_text(0x02375508).bytes(&[0x01,0x10, 0x2E, 0x1E]);
+            Patch::in_text(0x01e8d12c).bytes(&[0x11, 0xa0, 0x13, 0x94]).unwrap();
+            Patch::in_text(0x02375504).bytes(&[0x00, 0x08, 0x22, 0x1e]).unwrap();
+            Patch::in_text(0x02375508).bytes(&[0x81, 0x01, 0x22, 0x1e]).unwrap();
+            let unit = battle_info_get_unit(this.m_info, side_type, method_info);
+            if unit.force.is_some() {
+                if unit.person.get_asset_force() == 0 || unit.force.unwrap().force_type == 0 { 
+                    Patch::in_text(0x01e8d12c).bytes(&[0x20, 0x00, 0x80, 0x52]).unwrap();
+                    Patch::in_text(0x02375508).bytes(&[0x01,0x10, 0x2E, 0x1E]).unwrap();
                 }
                 else { 
-                    Patch::in_text(0x01e8d12c).bytes(&[0xE0,0xE1, 0x84, 0x52]);
-                    Patch::in_text(0x02375504).bytes(&[0x6C,0x0C, 0x80, 0x52]);
+                    Patch::in_text(0x01e8d12c).bytes(&[0xE0,0xE1, 0x84, 0x52]).unwrap();
+                    Patch::in_text(0x02375504).bytes(&[0x6C,0x0C, 0x80, 0x52]).unwrap();
                 }
             }
         }
     }
     let result = call_original!(this, side_type, method_info);
-    Patch::in_text(0x01e8d12c).bytes(&[0x11, 0xa0, 0x13, 0x94]);
-    Patch::in_text(0x02375504).bytes(&[0x00, 0x08, 0x22, 0x1e]);
-    Patch::in_text(0x02375508).bytes(&[0x81, 0x01, 0x22, 0x1e]);
+    Patch::in_text(0x01e8d12c).bytes(&[0x11, 0xa0, 0x13, 0x94]).unwrap();
+    Patch::in_text(0x02375504).bytes(&[0x00, 0x08, 0x22, 0x1e]).unwrap();
+    Patch::in_text(0x02375508).bytes(&[0x81, 0x01, 0x22, 0x1e]).unwrap();
     return result;
 }
-#[skyline::hook(offset=0x01e8d420)]
-pub fn RandomCheckHit(this: i32, method_info: OptionalMethod) -> bool {
-    let result = call_original!(this, method_info);
-    unsafe {
-        if GameVariableManager::get_number(rng::RNG_KEY) == 4 {
-            if rigPlayer && this > 0 { 
-                Patch::in_text(0x02375510).bytes(&[0x20, 0x00, 0x80, 0x52]).unwrap();
-                if !result { 
-                    println!("Hit Ratio: {} - Converting this miss into hit for player unit.", this);
-                    return true;
-                }
-             }
-            else if !rigPlayer && this < 100 { 
-                Patch::in_text(0x02375510).bytes(&[0xe0, 0xd7, 0x9f, 0x1a]).unwrap();
-                if result {
-                    println!("Hit Ratio: {} - Converting this hit into miss for enemy unit.", this);
-                    return false; 
-                }
-            }
-        }
-    }
-    return  result;
-}
-
-
 #[skyline::hook(offset = 0x2281a80)]
 pub fn load_settings1(this: u64, stream: u64, method_info: OptionalMethod) -> bool {
-    let value: bool = call_original!(this, stream, None);
+    crate::hub::add_to_juke_box();
+    let value: bool = call_original!(this, stream, method_info);
     if value {
-        gift::patch_gift();
-        rng::patchRNG();
-        support::patchSupport();
-        cutscene::patchCutscenes();
-        map::patchMap();
-        rng::patch_smash();
-        arena::patchArena();
-        cook::patchCook();
-        level::patchGrowth();
-        character::get_lueur_gender();
-        character::changeCharacters();
+        create_variables();
+        patch_all();
     }
     return value;
 }
 pub fn return_true(address: usize){
-    Patch::in_text(address).bytes(&[0x20,0x00, 0x80, 0x52]);
-    Patch::in_text(address+0x4).bytes(&[0xC0, 0x03, 0x5F, 0xD6]);
+    Patch::in_text(address).bytes(&[0x20,0x00, 0x80, 0x52]).unwrap();
+    Patch::in_text(address+0x4).bytes(&[0xC0, 0x03, 0x5F, 0xD6]).unwrap();
 }
 
 #[skyline::main(name = "libtriabolical")]
@@ -155,10 +137,10 @@ pub fn main() {
     Patch::in_text(0x0209950C).bytes(replace).unwrap();
     Patch::in_text(0x020994E0).bytes(replace).unwrap();
     Patch::in_text(0x02099538).bytes(replace).unwrap();
-    Patch::in_text(0x01a2a7c0).bytes(&[0xe1,0x0e,0x80,0x12]);
-    Patch::in_text(0x01a2a7c4).bytes(&[0x02,0x0f,0x80,0x52]);
+    Patch::in_text(0x01a2a7c0).bytes(&[0xe1,0x0e,0x80,0x12]).unwrap();
+    Patch::in_text(0x01a2a7c4).bytes(&[0x02,0x0f,0x80,0x52]).unwrap();
 
-    Patch::in_text(0x01fdea34).bytes(&[0x01,0x04,0x80, 0x52]);
+    Patch::in_text(0x01fdea34).bytes(&[0x01,0x04,0x80, 0x52]).unwrap();
 
     // Lunatic Random 
     return_true(0x01bfaec0);
@@ -167,7 +149,7 @@ pub fn main() {
 
     //DLC
     //return_true(0x029f4270);
-
+    cobapi::register_system_event_handler(create_settings);
     bgm::bgm_install(); 
     cutscene::cutscene_install(); //Cutscenes
     support::support_install(); //Support
@@ -179,13 +161,12 @@ pub fn main() {
     rng::rng_install(); // RNG 
     character::char_install();  // Single Character Mode
     gift::gift_install(); //Gift Settings
-    //cobapi::register_system_event_handler(load_settings);
-    skyline::install_hooks!(string::HelpParamSetter_SetItemData, bgm::ChangeBGM, bgm::ChangeBGM2, level::LevelUpWindow_SetupParams);
+    cobapi::register_system_event_handler(create_settings);
+    skyline::install_hooks!( string::help_param_setter_set_person, character::set_tip_text, string::help_param_setter_set_god, string::help_param_setter_set_item_data_hook, bgm::change_bgm_hook, level::level_up_window_setup_hook);
     skyline::install_hooks!(calc_action_hook);
-   // skyline::install_hooks!(hub::well_items, exp::hybrid_hook, exp::prob_100);
-    skyline::install_hooks!( menus::GmapMenu_SubShopMenu_CreateBind,menus::NoticeBoardSequence_CreateBind,menus::hub_menu_create_bind);
-    skyline::install_hooks!(rng::hybrid_hook, exp::SetBattleInfo, load_settings1, arena::arena_finish_training );
-    skyline::install_hooks!(level::Set__Level, level::UnitInfo_SetLevel, exp::addExp, exp::normalizeExp, exp::LevelUp_Prepare, exp::unit_add_exp);
+    skyline::install_hooks!( menus::gmap_menu_sub_shop_menu_create_bind,menus::notice_board_create_bind, menus::hub_menu_create_bind);
+    skyline::install_hooks!( exp::set_battle_info_hook, load_settings1, arena::arena_finish_training );
+    skyline::install_hooks!(support::reliance_can_level_up, level::set_total_level, level::unit_info_set_level_hook, exp::exp_sequence_create_bind, exp::level_up_prepare_hook, exp::unit_add_exp);
     println!("triabolical code mods are loaded");
 
     std::panic::set_hook(Box::new(|info| {

@@ -6,30 +6,30 @@ use engage::gamevariable::*;
 pub const GIFT_KEY: &str = "G_GIFT";
 
 pub fn patch_gift(){
-    Patch::in_text(0x023f3f18).bytes(&[0x3a,0xff,0xff,0x17]);   //DLC0
-    Patch::in_text(0x023f3fc8).bytes(&[0x0e,0xff,0xff,0x17]);   //Patch0
-    Patch::in_text(0x023f4088).bytes(&[0xde,0xfe,0xff,0x17]);   //DLC1
-    Patch::in_text(0x023f4138).bytes(&[0xb2,0xfe,0xff, 0x17]);  //Patch3
+    Patch::in_text(0x023f3f18).bytes(&[0x3a,0xff,0xff,0x17]).unwrap();   //DLC0
+    Patch::in_text(0x023f3fc8).bytes(&[0x0e,0xff,0xff,0x17]).unwrap();  //Patch0
+    Patch::in_text(0x023f4088).bytes(&[0xde,0xfe,0xff,0x17]).unwrap();   //DLC1
+    Patch::in_text(0x023f4138).bytes(&[0xb2,0xfe,0xff, 0x17]).unwrap();  //Patch3
     let ret = &[0xC0, 0x03, 0x5F, 0xD6];
     if GameVariableManager::get_number(GIFT_KEY) == 1 {
-        Patch::in_text(0x023f3f18).bytes(ret);
-        Patch::in_text(0x023f4088).bytes(ret);
+        Patch::in_text(0x023f3f18).bytes(ret).unwrap();
+        Patch::in_text(0x023f4088).bytes(ret).unwrap();
     }
     else if GameVariableManager::get_number(GIFT_KEY) == 2 {
-        Patch::in_text(0x023f3fc8).bytes(ret);
-        Patch::in_text(0x023f4138).bytes(ret);
+        Patch::in_text(0x023f3fc8).bytes(ret).unwrap();
+        Patch::in_text(0x023f4138).bytes(ret).unwrap();
     }
     else if GameVariableManager::get_number(GIFT_KEY) == 3 {
-        Patch::in_text(0x023f3f18).bytes(ret);
-        Patch::in_text(0x023f4088).bytes(ret);
-        Patch::in_text(0x023f3fc8).bytes(ret);
-        Patch::in_text(0x023f4138).bytes(ret);
+        Patch::in_text(0x023f3f18).bytes(ret).unwrap();
+        Patch::in_text(0x023f4088).bytes(ret).unwrap();
+        Patch::in_text(0x023f3fc8).bytes(ret).unwrap();
+        Patch::in_text(0x023f4138).bytes(ret).unwrap();
     }
 }
 
 pub struct Giftmod;
 impl ConfigBasicMenuItemSwitchMethods for Giftmod {
-    fn init_content(this: &mut ConfigBasicMenuItem){  GameVariableManager::make_entry_norewind(GIFT_KEY, 0); }
+    fn init_content(_this: &mut ConfigBasicMenuItem){ patch_gift(); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle = GameVariableManager::get_number(GIFT_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 3, 1);

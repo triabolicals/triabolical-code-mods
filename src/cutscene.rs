@@ -1,15 +1,17 @@
 use skyline::patching::Patch;
 use unity::prelude::*;
-use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
-use engage::gamevariable::*;
+use engage::{
+    menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}},
+    gamevariable::*,
+};
+
 use crate::string::*;
 pub const CUTSCENES_KEY: &str = "G_CUTSCENE";
 
 pub struct CutsceneMod;
-pub fn patchCutscenes(){
-    GameVariableManager::make_entry_norewind(CUTSCENES_KEY, 0);
+pub fn patch_cutscenes(){
     let active = GameVariableManager::get_bool(CUTSCENES_KEY);
-    if (active){
+    if active{
         let replace = &[0xC0, 0x03, 0x5F, 0xD6];
         Patch::in_text(0x01ed8e20).bytes(replace).unwrap();
         Patch::in_text(0x01ed8ef0).bytes(replace).unwrap();
@@ -22,9 +24,8 @@ pub fn patchCutscenes(){
     }
 }
 impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){  patchCutscenes(); }
+    fn init_content(_this: &mut ConfigBasicMenuItem){  patch_cutscenes(); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
-        GameVariableManager::make_entry(CUTSCENES_KEY, 0);
         let toggle = GameVariableManager::get_bool(CUTSCENES_KEY);
         let result = ConfigBasicMenuItem::change_key_value_b(toggle);
         if toggle != result {
@@ -32,19 +33,17 @@ impl ConfigBasicMenuItemSwitchMethods for CutsceneMod {
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
-            patchCutscenes();
+            patch_cutscenes();
             return BasicMenuResult::se_cursor();
         } else {return BasicMenuResult::new(); }
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let toggle = GameVariableManager::get_bool(CUTSCENES_KEY);
-        if (toggle) { this.help_text = "Disables cutscenes and movies during chapter maps.".into(); } 
+        if GameVariableManager::get_bool(CUTSCENES_KEY){ this.help_text = "Disables cutscenes and movies during chapter maps.".into(); } 
         else { this.help_text = "Enables cutscenes and movies during chapter maps.".into(); }
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let toggle = GameVariableManager::get_bool(CUTSCENES_KEY);
-        if (toggle) { this.command_text = On_str();} 
-        else { this.command_text =  Off_str(); }
+        if GameVariableManager::get_bool(CUTSCENES_KEY) { this.command_text = on_str();} 
+        else { this.command_text = off_str(); }
     }
 }
 

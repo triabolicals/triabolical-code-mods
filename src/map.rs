@@ -4,8 +4,7 @@ use engage::gamevariable::*;
 use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
 pub const MAP_KEY: &str = "G_MAP_SKIP";
 
-pub fn patchMap(){
-    GameVariableManager::make_entry_norewind(MAP_KEY, 0);
+pub fn patch_map(){
     let active = GameVariableManager::get_number(MAP_KEY);
     if active == 0 { //None
         Patch::in_text(0x01ed91c0).bytes(&[0xfd,0x7b,0xbd,0xa9]).unwrap();
@@ -29,7 +28,7 @@ pub fn patchMap(){
 }
 pub struct MapMod;
 impl ConfigBasicMenuItemSwitchMethods for MapMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ }
+    fn init_content(_this: &mut ConfigBasicMenuItem){ patch_map(); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle =  GameVariableManager::get_number(MAP_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 3, 1);
@@ -38,7 +37,7 @@ impl ConfigBasicMenuItemSwitchMethods for MapMod {
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
-            patchMap();
+            patch_map();
             return BasicMenuResult::se_cursor();
         } else {return BasicMenuResult::new(); }
     }
