@@ -1,15 +1,12 @@
 use skyline::patching::Patch;
 use unity::prelude::*;
-use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
-use engage::gamevariable::*;
-use engage::gamedata::unit::Unit;
-use engage::gamedata::person::CapabilitySbyte;
-use engage::force::*;
+use engage::{
+    gamedata::unit::*,
+    gamevariable::*,
+    menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}},
+    mess::*,
+};
 use crate::string::*;
-use engage::gamedata::JobData;
-use engage::gamedata::unit::UnitRing;
-use engage::gamedata::unit::GodUnit;
-use engage::gameuserdata::GameUserData;
 
 pub const ARENA_KEY: &str = "G_ARENA_SKIP";
 
@@ -53,7 +50,7 @@ pub fn unit_set_god_unit(this: &Unit, god_unit:Option<&GodUnit>, method_info: Op
 pub fn unit_set_ring(this: &Unit, ring: Option<&UnitRing>, method_info: OptionalMethod);
 
 #[unity::from_offset("App", "BattleCalculator", "GetDeadSide")]
-pub fn BattleCalculator_GetDeadSide(this: u64, method_info: OptionalMethod) -> i32;
+pub fn battle_calculator_get_dead_side(this: u64, method_info: OptionalMethod) -> i32;
 
 #[skyline::from_offset(0x027cb090)]
 pub fn achieve_add_unit_battle_count(method_info: OptionalMethod);
@@ -73,14 +70,14 @@ pub fn arena_finish_training(this: &ArenaOrderSequence, method_info: OptionalMet
         unsafe {
             unit_set_god_unit(this.training_unit, this.god_unit, None);
             unit_set_ring(this.training_unit, this.ring, None);
-            let deadSide = BattleCalculator_GetDeadSide(this.calculator, None);
+            let dead_side = battle_calculator_get_dead_side(this.calculator, None);
             if this.is_emblem_battle == false {
                 achieve_add_unit_battle_count(None);
-                if deadSide == 1 { achieve_add_unit_battle_win(None); }
+                if dead_side == 1 { achieve_add_unit_battle_win(None); }
             }
             else {
                 achieve_add_god_battle_count(None);
-                if deadSide == 1 { achieve_add_god_battle_win(None); }
+                if dead_side == 1 { achieve_add_god_battle_win(None); }
             }
             if this.training_type == 0 {
                 let mut value =  GameVariableManager::get_number("G_拠点_闘技場済み");
@@ -89,17 +86,13 @@ pub fn arena_finish_training(this: &ArenaOrderSequence, method_info: OptionalMet
             }
         }
     }
-    else {
-        call_original!(this, method_info);
-    }
-
+    else { call_original!(this, method_info); }
 }
 
 pub struct ArenaMod;
-pub fn patchArena(){
-    GameVariableManager::make_entry(ARENA_KEY, 0);
+pub fn patch_arena(){
     let active = GameVariableManager::get_bool(ARENA_KEY);
-    if (active){
+    if active{
         let set_false = &[0x00, 0x00, 0x80, 0x52];
         let set_return = &[0xC0, 0x03, 0x5F, 0xD6];
         let set_nop =  &[0x1F,0x20,0x03,0xD5];
@@ -149,14 +142,14 @@ pub fn patchArena(){
         // App.ArenaOrderSequence$$CreateBind
         Patch::in_text(0x01ca616c).bytes(&[0x60,0x00, 0x80, 0x52]).unwrap();    // App.Fade$$FadeWait(3)
         Patch::in_text(0x01ca6124).bytes(&[0x00,0x10, 0x20, 0x1E]).unwrap();    //App.Fade$$BlackOut(0.0, 4)
-        Patch::in_text(0x01ca67b0).nop();
+        Patch::in_text(0x01ca67b0).nop().unwrap(); 
 
         //BlackIn/BlackOut duration to 0
         Patch::in_text(0x01ca6484).bytes(&[0xE0,0x03, 0x27, 0x1E]).unwrap();
         Patch::in_text(0x01ca6124).bytes(&[0xE0,0x03, 0x27, 0x1E]).unwrap();
 
         //Patch::in_text(0x01caa4b0).bytes(set_return).unwrap();
-        Patch::in_text(0x01ca67b0).nop();
+        Patch::in_text(0x01ca67b0).nop().unwrap();
 
         Patch::in_text(0x01ca9e80).bytes(set_return).unwrap();
         println!("Arena battles are skipped");
@@ -192,39 +185,32 @@ pub fn patchArena(){
     }
 }
 impl ConfigBasicMenuItemSwitchMethods for ArenaMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(ARENA_KEY, 0); }
+    fn init_content(_this: &mut ConfigBasicMenuItem){ patch_arena(); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
-        GameVariableManager::make_entry(ARENA_KEY, 0);
         let active = GameVariableManager::get_bool(ARENA_KEY);
         let result = ConfigBasicMenuItem::change_key_value_b(active);
-
         if active != result {
             GameVariableManager::set_bool(ARENA_KEY, result);
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
-            patchArena();
+            patch_arena();
             return BasicMenuResult::se_cursor();
         } else {return BasicMenuResult::new(); }
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let active = GameVariableManager::get_bool(ARENA_KEY);
-        if (active) { this.help_text = "Arena battles are skipped.".into(); } 
-        else { this.help_text = "Arena battles are not skipped.".into(); }
+        this.help_text = if GameVariableManager::get_bool(ARENA_KEY) {  "Arena battles are skipped. (Required to use in menus)" } 
+        else { "Arena battles are not skipped." }.into();
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let active = GameVariableManager::get_bool(ARENA_KEY);
-        unsafe {
-            if !active { this.command_text = On_str(); }
-            else { this.command_text = Off_str(); }
-        }
-
+        if !GameVariableManager::get_bool(ARENA_KEY) { this.command_text = on_str(); }
+        else { this.command_text = off_str(); }
     }
 }
 #[no_mangle]
 extern "C" fn arena() -> &'static mut ConfigBasicMenuItem { 
     unsafe {
-        let str0 = concat_strings3(get_mess_str("MID_Hub_Arena"), " ".into(), get_mess_str("MID_CONFIG_COMBATANIME"), None);
+        let str0 = concat_strings3(Mess::get("MID_Hub_Arena"), " ".into(), Mess::get("MID_CONFIG_COMBATANIME"), None);
         ConfigBasicMenuItem::new_switch::<ArenaMod>(str0.get_string().unwrap()) 
     }
 }

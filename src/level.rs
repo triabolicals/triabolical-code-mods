@@ -1,11 +1,17 @@
-use skyline::patching::Patch;
 use unity::prelude::*;
-use std::ops::Deref;
-use engage::menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}};
-use engage::gamevariable::*;
-use engage::gameuserdata::GameUserData;
-use engage::{gamedata::*, singleton::SingletonClass};
-use engage::{gamedata::person::*, gamedata::unit::*};
+use skyline::patching::Patch;
+use engage::{
+    menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem, ConfigBasicMenuItemCommandMethods}},
+    pad::*,
+    util::get_instance,
+    force::*,
+    dialog::yesno::*,
+    gamedata::unit::*,
+    gameuserdata::GameUserData,
+    gamevariable::*,
+    random::*,
+    mess::*,
+};
 use crate::string::*;
 // Level, Growth Mods
 pub const LEVEL_DIS_KEY: &str = "G_LEVEL_TYPE";
@@ -23,107 +29,100 @@ pub struct TextMeshProUGUI {
 #[unity::class("App", "UnitStatusSetter")]
 pub struct UnitStatusSetter {
     junk: [u8; 376],
-    pub level: &'static UnitStatusSetter_ValueParam,
+    pub level: &'static UnitStatusSetterValueParam,
 }
 
-#[unity::class("App", "UnitStatusSetter_ValueParam")]
-pub struct UnitStatusSetter_ValueParam {
+#[unity::class("App", "UnitStatusSetterValueParam")]
+pub struct UnitStatusSetterValueParam {
     setter: &'static UnitStatusSetter,
     m_root_ptr: u64,
-    pub m_title: &'static TextMeshProUGUI,
-    m_value: &'static TextMeshProUGUI,
+    pub title: &'static TextMeshProUGUI,
+    value: &'static TextMeshProUGUI,
     //
 }
 #[unity::class("App", "UnitInfoParamSetter")]
 pub struct UnitInfoParamSetter {
-    junk : [u8; 160],
-    pub m_level : &'static TextMeshProUGUI,
+    parent: u64,
+    engine: u64,
+    pub simple_ui: i32,
+    junk : [u8; 136],
+    pub level : &'static TextMeshProUGUI,
 }
 #[unity::class("App","LevelUpWindowController")]
 pub struct LevelUpWindowController {
     junk: u64,
-    pub m_CharName: &'static TextMeshProUGUI,
-    pub m_TitleLevel: &'static TextMeshProUGUI,
-    pub m_Level: &'static TextMeshProUGUI,
-    pub m_Job: &'static TextMeshProUGUI,
+    pub char_name: &'static TextMeshProUGUI,
+    pub title_level: &'static TextMeshProUGUI,
+    pub level: &'static TextMeshProUGUI,
+    pub job: &'static TextMeshProUGUI,
 }
 #[unity::hook("App","LevelUpWindowController", "SetupParams")]
-pub fn LevelUpWindow_SetupParams(this: &LevelUpWindowController, unit: &Unit, next: &Unit, method_info: OptionalMethod){
+pub fn level_up_window_setup_hook(this: &LevelUpWindowController, unit: &Unit, next: &Unit, method_info: OptionalMethod){
     call_original!(this, unit, next, method_info);
-    if GameVariableManager::get_bool(LEVEL_DIS_KEY) {
-        if unit.m_InternalLevel != 0 {
-            let level_str: &Il2CppString = format!("{}/{}", unit.m_Level, unit.m_InternalLevel).into();
-            unsafe {
-                TrySetText_String(this.m_Level, level_str, None);
-            }
+    if GameVariableManager::get_number(LEVEL_DIS_KEY) != 0 {
+        if unit.internal_level!= 0 {
+            let level_str: &Il2CppString = format!("{}/{}", unit.level, unit.internal_level).into();
+            unsafe { try_set_text_string(this.level, level_str, None); }
         }
     }
 }
 #[skyline::hook(offset = 0x1f9d320)]
-pub fn UnitInfo_SetLevel(this: &UnitInfoParamSetter, unit: Option<&Unit>, x: i32, z: i32, bSelectedGod: bool, god: &GodUnit, method_info: OptionalMethod){
-    call_original!(this, unit, x, z, bSelectedGod, god, method_info);
-    match unit {
-        Some(p) => {
-            unsafe {
-                GameVariableManager::make_entry_norewind(LEVEL_DIS_KEY, 0);
-                let result = GameVariableManager::get_bool(LEVEL_DIS_KEY);
-                let enLevel = p.get_enchanced_level();
-                let mut displayed_level = enLevel;
-                if result { 
-                    if p.m_InternalLevel >= 0 {
-                        displayed_level = enLevel + (p.m_InternalLevel as i32);
-                    }
-                 }
-                TrySetText(this.m_level, displayed_level, None);
-            }
-        },
-        None => {},
+pub fn unit_info_set_level_hook(this: &mut UnitInfoParamSetter, unit: Option<&Unit>, x: i32, z: i32, selected_god: bool, god: &GodUnit, method_info: OptionalMethod){
+    call_original!(this, unit, x, z, selected_god, god, method_info);
+    if let Some(p) = unit { 
+        GameVariableManager::make_entry_norewind(LEVEL_DIS_KEY, 0);
+        let result = GameVariableManager::get_number(LEVEL_DIS_KEY);
+        let enhance_level= p.get_enchanced_level();
+        let mut displayed_level = enhance_level;
+        if result != 0 { 
+            if p.internal_level >= 0 { displayed_level = enhance_level+ (p.internal_level as i32); }
+        }
+        unsafe { try_set_text(this.level, displayed_level, None) };
     }
 }
 
 #[skyline::from_offset(0x290f1c0)]
-pub fn TrySetText(tmp: &TextMeshProUGUI, value: i32, method_info: OptionalMethod);
+pub fn try_set_text(tmp: &TextMeshProUGUI, value: i32, method_info: OptionalMethod);
+
 #[skyline::from_offset(0x0290f0a0)]
-pub fn TrySetText_String(tmp: &TextMeshProUGUI, value: &Il2CppString, method_info: OptionalMethod);
+pub fn try_set_text_string(tmp: &TextMeshProUGUI, value: &Il2CppString, method_info: OptionalMethod);
 
 #[skyline::from_offset(0x1b58360)]
-pub fn SetValueDirect(this: &UnitStatusSetter_ValueParam, str: &Il2CppString, dir: i32, isLimit: bool, method_info: OptionalMethod);
+pub fn set_value_direct(this: &UnitStatusSetterValueParam, str: &Il2CppString, dir: i32, is_limit: bool, method_info: OptionalMethod);
 
 //Hooking to where the game sets the level display in the unit status screen
 #[skyline::hook(offset = 0x1c66980)]
-pub fn Set__Level(this: &UnitStatusSetter, unit: &Unit, unit_no_enhance: &Unit, method_info: OptionalMethod){
+pub fn set_total_level(this: &UnitStatusSetter, unit: &Unit, unit_no_enhance: &Unit, method_info: OptionalMethod){
     call_original!(this, unit, unit_no_enhance, method_info);
-
-    let result = GameVariableManager::get_bool(LEVEL_DIS_KEY);
-
+    let result = GameVariableManager::get_number(LEVEL_DIS_KEY);
     unsafe {
-        let enLevel = unit.get_enchanced_level();
-        let no_enLevel = unit_no_enhance.get_enchanced_level();
-        let unit_level = unit_no_enhance.m_Level;
-        let max_level = unit_no_enhance.m_Job.get_max_level();
-        let boost: i32 = (no_enLevel < enLevel) as i32;
+        let enhance_level= unit.get_enchanced_level();
+        let not_enhance_level = unit_no_enhance.get_enchanced_level();
+        let unit_level = unit_no_enhance.level;
+        let max_level = unit_no_enhance.job.get_max_level();
+        let boost: i32 = (not_enhance_level < enhance_level) as i32;
         let at_limit: bool = max_level <= unit_level;
-        let displayed_level = enLevel;
-        if result {
-            let internal_level = unit_no_enhance.m_InternalLevel;
+        let displayed_level = enhance_level;
+        if result > 0 {
+            let internal_level = unit_no_enhance.internal_level;
             if internal_level <= 0 {
                 let level_str = format!("{}", displayed_level).into();
-                SetValueDirect(this.level, level_str , boost, at_limit, None);
+                set_value_direct(this.level, level_str , boost, at_limit, None);
             }
             else {
                 let level_str = format!("{}/{}", displayed_level, internal_level).into();
-                SetValueDirect(this.level, level_str , boost, at_limit, None);
+                set_value_direct(this.level, level_str , boost, at_limit, None);
             }
         }
         else {
             let level_str = format!("{}", displayed_level).into();
-            SetValueDirect(this.level, level_str , boost, at_limit, None);
+            set_value_direct(this.level, level_str , boost, at_limit, None);
         }
     }
 }
 
 // Growth mode default
-fn restoreDefault(){
+fn restore_default(){
     //Growth Mode Call
     Patch::in_text(0x01a3a3c4).bytes(&[0xe7, 0x6a, 0x2b, 0x94]).unwrap();
     //Random
@@ -134,21 +133,20 @@ fn restoreDefault(){
     Patch::in_text(0x01a3a410).bytes(&[0x14,0x81, 0x40, 0x39]).unwrap();
     // Level Down but add the level instead of subtracting it
     Patch::in_text(0x01a3ac8c).bytes(&[0x08, 0x05, 0x0, 0x51]).unwrap();
-
 }
 
-pub fn patchGrowth(){
-    GameVariableManager::make_entry_norewind(GROWTH_KEY, 0);
+pub fn patch_growth(){
+    GameVariableManager::make_entry(GROWTH_KEY, 0);
     let result = GameVariableManager::get_number(GROWTH_KEY);
-    restoreDefault();
-    if (result == 0 ){ 
+    restore_default();
+    if result == 0{ 
         println!("Growth set to save file default");
-        restoreDefault(); 
+        restore_default(); 
     }
-    else if (result == 1){
+    else if result == 1{
         //Opposite Mode
-        let growthMode = GameUserData::get_grow_mode();
-        if (growthMode == 0) {//Random -> Fixed
+        let growth_mode = GameUserData::get_grow_mode();
+        if growth_mode == 0 {//Random -> Fixed
             Patch::in_text(0x01a3a3c4).bytes(&[0x20, 0x00, 0x80, 0xd2]).unwrap();
             println!("Growth set to 'Fixed' from save file default of 'Random'");
         }
@@ -157,13 +155,13 @@ pub fn patchGrowth(){
             println!("Growth set to 'Random' from save file default of 'Fixed'");
         }
     }
-    else if (result == 2) {
+    else if result == 2 {
         // No Growths
         Patch::in_text(0x01a3a410).bytes(&[0x14,0x00,0x80,0xD2]).unwrap();
         Patch::in_text(0x01a3a658).bytes(&[0x14,0x00, 0x80,0xD2]).unwrap();
         println!("Growth set to 'No Growths'");
     }
-    else if (result == 3){
+    else if result == 3 {
         // Perfect Level Ups, forcing to Random and RNG set to 1
         Patch::in_text(0x01a3a3c4).bytes(&[0x00, 0x00, 0x80, 0xd2]).unwrap();
         Patch::in_text(0x01a3a73c).bytes(&[0x20, 0x00, 0x80, 0x52]).unwrap();
@@ -172,7 +170,7 @@ pub fn patchGrowth(){
 }
 pub struct GrowthMod;
 impl ConfigBasicMenuItemSwitchMethods for  GrowthMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(GROWTH_KEY, 0); }
+    fn init_content(_this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(GROWTH_KEY, 0); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         let toggle =  GameVariableManager::get_number(GROWTH_KEY);
         let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 3, 1);
@@ -181,42 +179,46 @@ impl ConfigBasicMenuItemSwitchMethods for  GrowthMod {
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
-            patchGrowth();
+            patch_growth();
             return BasicMenuResult::se_cursor();
         } else {return BasicMenuResult::new(); }
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let typeC =  GameVariableManager::get_number(GROWTH_KEY);
-        let growthMode = GameUserData::get_grow_mode();
-        this.help_text = get_mess_str("MID_GAMESTART_GROWMODE_SELECT_HELP");
+        let growth_mode = GameUserData::get_grow_mode();
+        this.help_text = match GameVariableManager::get_number(GROWTH_KEY) {
+            0 => {
+                let current =  if growth_mode == 1 {  Mess::get("MID_SYS_Grow_Fixed") } else {Mess::get("MID_SYS_Grow_Random") };
+                format!("{} (Save File Selected: {})", Mess::get("MID_GAMESTART_GROWMODE_SELECT_HELP"), current)
+            }
+            1 => {
+                let switch =  if growth_mode == 0 {  Mess::get("MID_SYS_Grow_Fixed") } else {Mess::get("MID_SYS_Grow_Random") };
+                format!("{} (Switch to {})", Mess::get("MID_GAMESTART_GROWMODE_SELECT_HELP"), switch)
+            }
+            2 => { "No stats increases on level ups.".to_string() }
+            3 => { "All possible stats are increase on level ups.".to_string() }
+            _ => { Mess::get("MID_GAMESTART_GROWMODE_SELECT_HELP").to_string() }
+        }.into();
     }
+        
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let type_C =  GameVariableManager::get_number(GROWTH_KEY);
-        let growthMode = GameUserData::get_grow_mode();
-        unsafe {
-        if type_C == 0 {
-            if growthMode == 1 { this.command_text = Mess_Get("MID_SYS_Grow_Fixed".into(), None); }
-            else { this.command_text = Mess_Get("MID_SYS_Grow_Random".into(), None); }
-        }
-        else if type_C == 1 { 
-            if growthMode == 0 {  this.command_text = Mess_Get("MID_SYS_Grow_Fixed".into(), None); }
-            else { this.command_text = Mess_Get("MID_SYS_Grow_Random".into(), None); }
-        }
-        else if type_C == 2 { this.command_text = concat_strings3(get_mess_str("MID_MENU_NO"), " ".into(), get_mess_str("MID_GAMESTART_GROWMODE_SELECT_TITLE"), None); }
-        else if type_C == 3 { this.command_text = get_mess_str("MID_Hub_MuscleExercises_Perfect");  }
-        else if type_C == 4 { this.command_text = "???".into();  }
-    }
+        let mode =  GameVariableManager::get_number(GROWTH_KEY);
+        let growth_mode = GameUserData::get_grow_mode();
+        if mode == 0 { this.command_text = "Selected".into(); }
+        else if mode == 1 { this.command_text = "Switch".into(); }
+        else if mode == 2 { unsafe { this.command_text = concat_strings3( Mess::get("MID_MENU_NO"), " ".into(), Mess::get("MID_GAMESTART_GROWMODE_SELECT_TITLE"), None); } }
+        else if mode == 3 { this.command_text =  Mess::get("MID_Hub_MuscleExercises_Perfect");  }
+        else if mode == 4 { this.command_text = "???".into();  }
     }
 }
 pub struct LevelMod;
 impl ConfigBasicMenuItemSwitchMethods for LevelMod {
-    fn init_content(this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(LEVEL_DIS_KEY, 0); }
+    fn init_content(_this: &mut ConfigBasicMenuItem){ GameVariableManager::make_entry(LEVEL_DIS_KEY, 0); }
     extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
         GameVariableManager::make_entry(LEVEL_DIS_KEY, 0);
-        let toggle = GameVariableManager::get_bool(LEVEL_DIS_KEY);
-        let result = ConfigBasicMenuItem::change_key_value_b(toggle);
+        let toggle = GameVariableManager::get_number(LEVEL_DIS_KEY);
+        let result = ConfigBasicMenuItem::change_key_value_i(toggle, 0, 2, 1);
         if toggle != result {
-            GameVariableManager::set_bool(LEVEL_DIS_KEY, result);
+            GameVariableManager::set_number(LEVEL_DIS_KEY, result);
             Self::set_command_text(this, None);
             Self::set_help_text(this, None);
             this.update_text();
@@ -224,28 +226,71 @@ impl ConfigBasicMenuItemSwitchMethods for LevelMod {
         } else {return BasicMenuResult::new(); }
     }
     extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let toggle = GameVariableManager::get_bool(LEVEL_DIS_KEY);
-        if (toggle) { this.help_text = "Displays unit's total level.".into(); } 
-        else { this.help_text = "Default level display.".into(); }
+        this.help_text = match GameVariableManager::get_number(LEVEL_DIS_KEY) {
+            1 => { "Displays unit's total level. (Displayed / Internal)" }
+            2 => { "Displays total level and stats for next level up." }
+            _ => { "Default level display. (Displayed)" }
+        }.into();
     }
     extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod){
-        let toggle = GameVariableManager::get_bool(LEVEL_DIS_KEY);
-        if (toggle){ this.command_text = On_str(); }
-        else { this.command_text = Off_str(); }
+        this.command_text = match GameVariableManager::get_number(LEVEL_DIS_KEY) {
+            1 => { "Total" }
+            2 => { "Total + Next" }
+            _ => { "Default" }
+        }.into();
     }
 }
 
+pub struct ReseedGrow;
+impl ConfigBasicMenuItemCommandMethods for ReseedGrow {
+    extern "C" fn custom_call(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) -> BasicMenuResult {
+        let pad_instance = get_instance::<Pad>();
+        if pad_instance.npad_state.buttons.a() {
+            YesNoDialog::bind::<ReseedGrowConfirm>(this.menu, "Reseed Player Growth Seeds?", "Do it!", "Nah..");
+            BasicMenuResult::se_cursor()
+        }   
+        else { BasicMenuResult::new() }
+    }
+    extern "C" fn set_command_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) { this.command_text = "Reseed".into(); }
+    extern "C" fn set_help_text(this: &mut ConfigBasicMenuItem, _method_info: OptionalMethod) { this.help_text = "Reseeds player unit's growth seeds for Random Growths.".into(); }
+}
+pub struct ReseedGrowConfirm;
+impl TwoChoiceDialogMethods for ReseedGrowConfirm {
+    extern "C" fn on_first_choice(this: &mut BasicDialogItemYes, _method_info: OptionalMethod) -> BasicMenuResult {
+        change_player_grow_seed();
+        BasicMenuResult::se_cursor().with_close_this(true)
+    }
+    extern "C" fn on_second_choice(_this: &mut BasicDialogItemNo, _method_info: OptionalMethod) -> BasicMenuResult { BasicMenuResult::new().with_close_this(true) }
+}
+
+fn change_player_grow_seed() {
+    let force_type = [ForceType::Player, ForceType::Absent, ForceType::Dead];
+    let rng = Random::get_game();
+    for ff in force_type {
+        let force_iter = Force::iter(Force::get(ff).unwrap());
+        for unit in force_iter {
+            unsafe { set_grow_seed(unit, rng.value(), None); }
+        }
+    }
+}
+#[unity::from_offset("App", "Unit", "set_GrowSeed")]
+fn set_grow_seed(this: &Unit, value: i32, _method_info: OptionalMethod);
+
 #[no_mangle]
 extern "C" fn level_callback() -> &'static mut ConfigBasicMenuItem {  ConfigBasicMenuItem::new_switch::<LevelMod>("Display Total Level")}
+
 #[no_mangle]
 extern "C" fn growth_callback() -> &'static mut ConfigBasicMenuItem { 
-    unsafe {
-        let str1 = Mess_Get("MID_GAMESTART_GROWMODE_TITLE".into(), None);
-        ConfigBasicMenuItem::new_switch::<GrowthMod>(str1.get_string().unwrap())
-    }
+    let str1 = Mess::get("MID_GAMESTART_GROWMODE_TITLE");
+    ConfigBasicMenuItem::new_switch::<GrowthMod>(str1.get_string().unwrap())
+}
+#[no_mangle]
+extern "C" fn reseed_callback() -> &'static mut ConfigBasicMenuItem { 
+    ConfigBasicMenuItem::new_command::<ReseedGrow>("Change Level up Seed")
 }
 #[no_mangle]
 pub fn level_install(){
     cobapi::install_game_setting(growth_callback);
     cobapi::install_game_setting(level_callback);
+    cobapi::install_game_setting(reseed_callback);
 }
