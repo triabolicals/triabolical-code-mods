@@ -167,5 +167,5 @@ pub fn adjust_fish_data() {
     );
 
 }
-
-
+#[skyline::from_offset(0x02c4ea10)]
+pub fn set_game_object_active(this: u64, value: bool, method_info: OptionalMethod);

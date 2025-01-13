@@ -227,7 +227,7 @@ fn predict_level_up(unit: &mut Unit) -> [i8; 10] {
     let mut out: [i8; 10] = [0; 10];
     let old_level = unit.level;
     unit.set_level(1);
-    let seed = unit.grow_ssed;
+    let seed = unit.grow_seed;
     unit.level_up(2);
     for x in 0..10 {
         out[x] = unit.base_capability.capability[x] - base_cap[x];
@@ -236,7 +236,7 @@ fn predict_level_up(unit: &mut Unit) -> [i8; 10] {
         unit.grow_capability[x] = growth_cap[x];
     } 
     unit.set_level(old_level as i32);
-    unit.grow_ssed = seed;
+    unit.grow_seed = seed;
     return out;
 }
 

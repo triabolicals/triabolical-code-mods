@@ -2,13 +2,12 @@ use unity::prelude::*;
 use unity::il2cpp::object::Array;
 use crate::level::*;
 use crate::string::*;
-use crate::skill::*;
 use skyline::patching::Patch;
 use engage::gamevariable::*;
 use engage::{
     mess::*,
     menu::{BasicMenuResult, config::{ConfigBasicMenuItemSwitchMethods, ConfigBasicMenuItem}},
-    gamedata::{*, person::PersonDataFlag, item::*, unit::*},
+    gamedata::{*, skill::*, person::PersonDataFlag, item::*, unit::*},
 };
 
 #[unity::class("App", "UnitAI")]
@@ -65,12 +64,6 @@ pub fn unit_get_ai(this: &Unit, method_info: OptionalMethod) -> &'static UnitAI;
 
 #[skyline::from_offset(0x01f5f490)]
 pub fn unit_ai_move_limit(this: &UnitAI, method_info: OptionalMethod) -> &'static MoveLimitRange; 
-
-#[unity::from_offset("App", "Unit", "get_X")]
-pub fn unit_get_x(this: &Unit, method_info: OptionalMethod) -> i32;
-
-#[unity::from_offset("App", "Unit", "get_Z")]
-pub fn unit_get_z(this: &Unit, method_info: OptionalMethod) -> i32;
 
 fn print_flags(flags: &PersonDataFlag) -> String {
     let mut out = "".into();
@@ -205,7 +198,6 @@ const HIDDEN_NAMES: &[&str] = &["Avoid Death", "Hit 0", "Hit 100", "Crit 0","Foe
 
 pub fn skill_array_hidden_string(skills: &SkillArray) -> String {
     let n_skills = skills.list.size;
-    let mut n_print = 0;
     let mut out: String = "".to_string();
     for x in 0..n_skills {
         let skill = skills.list.item[x as usize].get_skill().unwrap();
@@ -226,8 +218,6 @@ pub fn skill_array_hidden_string(skills: &SkillArray) -> String {
 }
 pub fn has_hidden_skills(skills: &SkillArray) -> bool {
     let n_skills = skills.list.size;
-    let mut n_print = 0;
-    let mut out: String = "".to_string();
     for x in 0..n_skills {
         let skill = skills.list.item[x as usize].get_skill().unwrap();
         if skill.get_flag() & 1 == 0 { continue; }
@@ -250,11 +240,6 @@ pub fn ai_value_get_value(this: &AIValue, method_info: OptionalMethod) -> i32;
 #[skyline::from_offset(0x01f5f880)]
 pub fn unit_ai_get_value(this: &UnitAI, order: i32, index: i32, method_info: OptionalMethod) -> &'static AIValue;
 
-fn mess_to_str(mid: &str) -> String {
-    Mess::get(mid).to_string()
-}
-
-
 #[skyline::hook(offset=0x0215a660)]
 pub fn help_param_setter_set_person(this: &HelpParamSetter, frame: u64, unit: &Unit, method_info: OptionalMethod){
     call_original!(this, frame, unit, method_info);
@@ -273,7 +258,7 @@ pub fn help_param_setter_set_person(this: &HelpParamSetter, frame: u64, unit: &U
     if unit.force.unwrap().force_type == 1 || unit.force.unwrap().force_type == 2 {
         unsafe {
             let ai = unit_get_ai(unit, None);
-            let mut ai_string = format!("PID: #{}, Pos: {}, {}", unit.person.parent.index, unit_get_x(unit, None), unit_get_z(unit, None));
+            let mut ai_string = format!("PID: #{}, Pos: {}, {}", unit.person.parent.index, unit.x, unit.z);
             for x in 0..4 {
                 let value = unit_ai_get_sequence(ai, x as i32, None).to_string();
                 ai_string = format!("{}\n{}: {}", ai_string, value, print_ai_value(ai, x as i32));
@@ -294,10 +279,9 @@ pub fn help_param_setter_set_person(this: &HelpParamSetter, frame: u64, unit: &U
             let mask = unit_get_mask_skill(unit, None);
             let skill_array = SkillArray::instantiate().unwrap();
             skill_array.ctor(mask);
-            skill_array.add_array(private);
+            skill_array.skill_array_add(&private);
             if has_hidden_skills(skill_array) { ai_string = format!("{}\nHidden:{}", ai_string, skill_array_hidden_string(skill_array)); }
             let text = tmp_text_get_text(&this.contexts_text, None);
-            //let expand_text = concat_strings(text, ai_string.into(), None);
             if let Some(god) = get_person_data_link_god(unit.person, None) {
                 ai_string = format!("{}\n{}: {} ", ai_string, Mess::get("MID_MENU_ENGAGE_LINK"), Mess::get(god.mid));
             }
@@ -311,12 +295,12 @@ pub fn help_param_setter_set_person(this: &HelpParamSetter, frame: u64, unit: &U
             let support_cat = get_support_category(unit.person, None);
             let support_data = SupportData::get(support_cat).unwrap();
             if support_cat.to_string() == "デフォルト" {
-                let hit_string = format!("{} {}: {}", mess_to_str("MID_MENU_Recall_Reliance_Unit"), mess_to_str("MID_SYS_Hit"), support_data[0].hit);
+                let hit_string = format!("{} {}: {}", Mess::get("MID_MENU_Recall_Reliance_Unit"), Mess::get("MID_SYS_Hit"), support_data[0].hit);
                 tmp_text_set_text(&this.contexts_text, format!("{}\n{}", text.to_string(), hit_string).into(), None);
             }  
             else {
                 let rank = ["C", "B", "A", "S"];
-                let mut support_text = format!("{} {} / {} / {} {}", mess_to_str("MID_SYS_Hit"), mess_to_str("MID_SYS_Crit"), mess_to_str("MID_SYS_Avo"), mess_to_str("MID_SYS_Secure"), mess_to_str("MID_H_INFO_Param_Correction_Support"));
+                let mut support_text = format!("{} {} / {} / {} {}", Mess::get("MID_SYS_Hit"), Mess::get("MID_SYS_Crit"), Mess::get("MID_SYS_Avo"), Mess::get("MID_SYS_Secure"), Mess::get("MID_H_INFO_Param_Correction_Support"));
                 for x in 0..support_data.len() {
                     support_text = format!("{}\n{}: {} / {} / {} / {}", support_text, rank[x], support_data[x].hit, support_data[x].crit, support_data[x].avo, support_data[x].secure);
                 }
@@ -464,8 +448,6 @@ pub fn patch_ignorance() {
         let w2_0_revert = &[0xe2, 0x17, 0x9f, 0x1a];
         Patch::in_text(0x01f47c90).bytes(&[0xff, 0x03, 0x01, 0xd1]).unwrap();
         Patch::in_text(0x02997f80).bytes(&[0xfd, 0x7b, 0xbc, 0xa9]).unwrap();
-
-
         Patch::in_text(0x01c6576c).bytes(&[0xa0, 0x1a, 0x00, 0x54]).unwrap();
         Patch::in_text(0x01f9e120).bytes(&[0xe0, 0x01, 0x00, 0x54]).unwrap();
         Patch::in_text(0x023584a0).bytes(&[0x20, 0x01, 0x00, 0x54]).unwrap();

@@ -251,7 +251,7 @@ pub fn set_job_details(this: &ClassChangeJobMenuContent, data: &ClassChangeChang
             old_unit.class_change(data.job);
             let stats = unit_total_growths(old_unit);
             unsafe {
-                let name = format!("{} {} {}", Mess::get(old_unit.get_job().name), Mess::get_name(old_unit.person.pid), Mess::get(Mess::get("MID_GAMESTART_GROWMODE_SELECT_TITLE")));
+                let name = format!("{} {} {}", Mess::get(old_unit.get_job().name), Mess::get_name(old_unit.person.pid), Mess::get("MID_GAMESTART_GROWMODE_SELECT_TITLE"));
                 let final_str = concat_strings3(name.into(), "\n".into(), stats.into(), None);
                 tmp_text_set_text(&this.help_text, final_str, None);
             }
@@ -380,7 +380,7 @@ pub fn job_menu_item_x_call(this: &mut ClassChangeJobMenuItem, method_info: Opti
             old_unit.class_change(this.job_data.job);
             let stats = unit_total_growths(old_unit);
             unsafe {
-                let name = format!("{} {} {}",  Mess::get(old_unit.get_job().name), Mess::get_name(old_unit.person.pid), Mess::get(Mess::get("MID_GAMESTART_GROWMODE_SELECT_TITLE")));
+                let name = format!("{} {} {}",  Mess::get(old_unit.get_job().name), Mess::get_name(old_unit.person.pid), Mess::get("MID_GAMESTART_GROWMODE_SELECT_TITLE"));
                 let final_str = concat_strings3(name.into(), "\n".into(), stats.into(), None);
                 tmp_text_set_text(&this.menu.menu_item_content.help_text, final_str, None);
             }
@@ -403,6 +403,15 @@ pub fn job_menu_item_x_call(this: &mut ClassChangeJobMenuItem, method_info: Opti
     }
     return 0x80;
 }
+pub fn job_menu_item_selected(this: &mut ClassChangeJobMenuItem, method_info: OptionalMethod) {
+    unsafe { job_menu_item_on_selected(this, method_info); }
+    let old_unit = unsafe { class_change_get_unit(None) };
+    old_unit.class_change(this.job_data.job);
+    crate::accessory::reload_unit_info(old_unit);
+}
+
+#[skyline::from_offset(0x019c7ac0)]
+pub fn job_menu_item_on_selected(this: &mut ClassChangeJobMenuItem, method_info: OptionalMethod);
 
 #[skyline::from_offset(0x01ea4680)]
 pub fn class_change_get_unit(method_info: OptionalMethod) -> &'static Unit;
@@ -411,5 +420,6 @@ pub fn add_x_call() {
     let cooking_menu = Il2CppClass::from_name("App", "ClassChangeJobMenu").unwrap().get_nested_types().iter().find(|x| x.get_name() == "ClassChangeJobMenuItem").unwrap();
     let cooking_menu_mut = Il2CppClass::from_il2cpptype(cooking_menu.get_type()).unwrap();
     cooking_menu_mut.get_virtual_method_mut("XCall").map(|method| method.method_ptr = job_menu_item_x_call as _);
+    cooking_menu_mut.get_virtual_method_mut("OnSelect").map(|method| method.method_ptr = job_menu_item_selected as _);
     println!("Replaced Virtual Method of ClassChangeJobMenuItem");
 }

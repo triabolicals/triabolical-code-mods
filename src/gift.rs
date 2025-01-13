@@ -138,7 +138,7 @@ pub fn complete_dlc_chapters() {
             if GameVariableManager::get_number("G_Emblem_Mode") == 0 {
                 for x in emblems {
                     let gid = format!("GID_{}", x);
-                    unsafe { godpool_create(GodData::get(&gid).unwrap(), None); }
+                    engage::godpool::GodPool::create_by_gid(gid);
                 }
             }
             else {
@@ -147,8 +147,7 @@ pub fn complete_dlc_chapters() {
                     let gid =
                     if GameVariableManager::exist(&key) { GameVariableManager::get_string(&key) }
                         else { format!("GID_{}", x).into() };
-                    
-                    unsafe { godpool_create(GodData::get(&gid.get_string().unwrap()).unwrap(), None); }
+                    engage::godpool::GodPool::create_by_gid(gid);
                 }
             }
             let complete = complete | 1;
@@ -156,10 +155,6 @@ pub fn complete_dlc_chapters() {
         }
     }
 }
-
-
-#[skyline::from_offset(0x023349c0)]
-fn godpool_create(this: &GodData, method_info: OptionalMethod) -> u64;
 
 extern "C" fn gift() -> &'static mut ConfigBasicMenuItem { 
     let menu_item = ConfigBasicMenuItem::new_switch::<Giftmod>("Gift Options");

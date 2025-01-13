@@ -19,7 +19,6 @@ use engage::{
     gamevariable::*,
     gameuserdata::*,
 };
-use crate::hash::ITEM_HASH;
 pub fn restore_instructions(){
     //God Room for cleaning
     let _ = Patch::in_text(0x01cd99a0).bytes(&[0x20, 0, 0x80, 0x52]);
@@ -36,16 +35,16 @@ extern "C" fn open_anime_all_ondispose(this: &mut ProcInst, _method_info: Option
     //TitleBar::close_header();
    // TitleBar::show_header();
     restore_instructions();
-    this.parent.get_class().get_virtual_method("OpenAnimeAll").map(|method| {
+    this.parent.as_ref().unwrap().get_class().get_virtual_method("OpenAnimeAll").map(|method| {
         let open_anime_all = unsafe { std::mem::transmute::<_, extern "C" fn(&ProcInst, &MethodInfo)>(method.method_info.method_ptr) };
-        open_anime_all(this.parent, method.method_info);
+        open_anime_all(this.parent.as_ref().unwrap(), method.method_info);
     });
 
     // Restoring Bullentin Board original items and the title bar when going back to the Bullentin Board
-    if this.parent.klass.get_name() == "NoticeBoardTopMenu" {
+    if this.parent.as_ref().unwrap().klass.get_name() == "NoticeBoardTopMenu" {
         unsafe { return_to_title(this, None); }
         if this.klass.get_name() == "NoticeBoardSequence" {
-            let config_menu = this.parent.cast_mut::<BasicMenu<BasicMenuItem>>();
+            let config_menu = this.parent.as_mut().unwrap().cast_mut::<BasicMenu<BasicMenuItem>>();
             config_menu.full_menu_item_list.items[0].get_class_mut().get_virtual_method_mut("ACall").map(|method| method.method_ptr = notice_item_acall as _);
             config_menu.full_menu_item_list.items[0].get_class_mut().get_virtual_method_mut("GetName").map(|method| method.method_ptr = notice_item_getname as _);
         
@@ -159,14 +158,14 @@ pub fn well_item_bind(this: &mut BasicMenu<BasicMenuItem>, method_info: Optional
 pub fn can_well() -> bool {
     if GameUserData::get_sequence() == 6 { return false; }
     if GameUserData::get_sequence() == 4 {
-        return HubUtil::get_current_scene_name().get_string().unwrap() == "Hub_Solanel";
+        return HubUtil::get_current_scene_name().to_string() == "Hub_Solanel";
     }
     return false;
 }
 #[skyline::hook(offset=0x01f1ac80)]
 pub fn notice_board_create_bind(proc: &mut ProcInst, initial_selected: i32, event_handler: *const u8, method_info: OptionalMethod){
     //set_achieve_menu_status();
-    let parent = proc.parent.get_class().get_name();
+    let parent = proc.parent.as_ref().unwrap().get_class().get_name();
     GameVariableManager::set_bool(crate::arena::ARENA_KEY, true);
     crate::arena::patch_arena();
     call_original!(proc, initial_selected, event_handler, method_info);
@@ -309,8 +308,10 @@ pub extern "C" fn collector_acall(this: &mut BasicMenuItem) -> BasicMenuResult {
         // Auto item collection (limited to 500 items) and auto adopting
 
     let hub_sequence = HubSequence::get_instance();
-    let access_manager = hub_sequence.get_current_access_data();
-    let access_list = access_manager.access_list;
+    //let access_manager = hub_sequence.get_current_access_data();
+    //let access_list = access_manager.access_list;
+    let access_list = &mut hub_sequence.get_locator_group().access_list;
+    
     let it = get_list_item_class();
     let test = il2cpp::instantiate_class::<List<ItemData>>(it);
     if test.is_err() { return BasicMenuResult::se_miss(); }
@@ -318,27 +319,24 @@ pub extern "C" fn collector_acall(this: &mut BasicMenuItem) -> BasicMenuResult {
     let item_list = test.unwrap();
     let mut animal_count = 0;
     item_list.items = Il2CppArray::new(750).unwrap();
-    access_list.iter()
-        .filter(|access| !access.get_is_done() )
-        .for_each(|access|{
-            if try_capture_animal(access) { animal_count += 1; }
-            else if let Some(iid) = access.aid {
-                if let Some(w_item) =  ItemData::get(iid) {
-                    if unsafe { !is_null_empty(w_item.name, None) && !is_null_empty(w_item.help, None) } {
-                        let count = HubUtil::get_item_count_with_bonus(w_item, access.get_item_count() );
-                        for _y in 0..count {
-                            if item_list.len() < 750 { 
-                                if let Some(valid_item) = ItemData::get_mut(iid) {
-                                    item_list.add( valid_item );
-                                }
-                            }
+    access_list.iter_mut().for_each(|access_point|{
+        if let Some(access) = access_point.access_data {
+            if !access.get_is_done() {
+                if try_capture_animal(access) {  animal_count += 1; }
+                else if let Some(iid) = access.aid {
+                    if let Some(w_item) =  ItemData::get(iid) {
+                        if unsafe { !is_null_empty(w_item.name, None) && !is_null_empty(w_item.help, None) } {
+                            let count = HubUtil::get_item_count_with_bonus(w_item, access.get_item_count() );
+                            for _y in 0..count { if item_list.len() < 750 {  if let Some(valid_item) = ItemData::get_mut(iid) { item_list.add( valid_item ); }}}
+                            if access_point.item_effect != 0 { unsafe { crate::hub::set_game_object_active(access_point.item_effect, false, None); } }
                         }
                     }
                 }
+                access.done();
+                access_point.done();
             }
-            access.done();
         }
-    );
+    });
     if GameUserData::get_sequence() == 4 { unsafe { item_gain_create_bind(this.menu, item_list, "MID_MENU_TITLE_HUB".into(), None) }; } 
     else if GameUserData::get_sequence() == 5 { unsafe { item_gain_create_bind(this.menu, item_list, "MID_MENU_TITLE_KIZUNA".into(), None) }; }
     if animal_count != 0 { println!("Adopted {} Animal(s)", animal_count); }
@@ -535,7 +533,7 @@ pub extern "C" fn collector_buildattribute(_this: &mut BasicMenuItem, _method_in
 pub extern "C" fn animal_getname(_this: &mut BasicMenuItem, _method_info: OptionalMethod) -> &'static Il2CppString { Mess::get("MID_Hub_AccessoryShop") }
 pub extern "C" fn animal_buildattribute(_this: &mut BasicMenuItem, _method_info: OptionalMethod) -> i32 {
     if HubFacilityData::get("AID_アクセサリ").unwrap().is_complete() {
-        if HubUtil::get_current_scene_name().get_string().unwrap() == "Hub_Solanel" { 1 }
+        if HubUtil::get_current_scene_name().to_string() == "Hub_Solanel" { 1 }
         else {  2 }
     } else { 4 }
 }

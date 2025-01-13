@@ -6,7 +6,6 @@ use engage::{
 };
 pub const COOK_KEY: &str = "G_CHEF";
 use crate::string::*;
-pub static mut COOK_INDEX: i32 = 0;
 
 pub fn get_cook_taste(pid: &Il2CppString, kind: i32) -> &'static Il2CppString {
     unsafe {
@@ -269,8 +268,8 @@ impl ConfigBasicMenuItemSwitchMethods for CookMod {
         let mode =  GameVariableManager::get_number(COOK_KEY);
         Mess::load("Cook".into());
         if mode == 0 { this.command_text = format!("Default").into();  }
-        else if mode == 5 { this.command_text = Mess::get("MID_FOODRANK_DefinitelySuffer").into(); } 
-        else if mode == 4 { this.command_text = Mess::get("MID_FOODRANK_Normal").into();  } 
+        else if mode == 5 { this.command_text = Mess::get("MID_FOODRANK_DefinitelySuffer") } 
+        else if mode == 4 { this.command_text = Mess::get("MID_FOODRANK_Normal") } 
         else if mode == 3 { this.command_text = "Dish Title 3".into(); }
         else if mode == 2 { this.command_text = "Dish Title 2".into();  }
         else if mode == 1 { this.command_text = "Dish Title 1".into();  }

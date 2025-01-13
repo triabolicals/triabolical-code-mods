@@ -22,15 +22,12 @@ mod gift;
 mod character;
 mod string;
 mod ai;
-mod skill;
-mod hash;
 mod accessory;
 
 pub fn create_variables() {
     GameVariableManager::make_entry(level::LEVEL_DIS_KEY, 0);
     GameVariableManager::make_entry(level::GROWTH_KEY, 0);
     GameVariableManager::make_entry(bgm::BGM_KEY, 0);
-    // GameVariableManager::make_entry(character::CHARACTER_KEY, 0);
     GameVariableManager::make_entry(rng::RNG_KEY, 0);
     GameVariableManager::make_entry(rng::SMASH_KEY, 0);
     GameVariableManager::make_entry(cook::COOK_KEY, 0);
