@@ -45,22 +45,7 @@ pub fn gmapmenu_shop_acall_install() {
         .get_nested_types().iter().find(|x| x.get_name() == "ShopItem").unwrap();
     let menu_mut = Il2CppClass::from_il2cpptype(gmap_menu_class.get_type()).unwrap();
     menu_mut.get_virtual_method_mut("ACall").map(|method| method.method_ptr = gmap_shop_new_a_call as _);
-
-    /* 
-    let gmap_menu_class = Il2CppClass::from_name("App", "NoticeBoardTopMenu").unwrap()
-        .get_nested_types().iter().find(|x| x.get_name() == "SolanelInfoItem").unwrap();
-    let menu_mut = Il2CppClass::from_il2cpptype(gmap_menu_class.get_type()).unwrap();
-    menu_mut.get_virtual_method_mut("BuildAttribute").map(|method| method.method_ptr = somniel_map_build_attrs as _);
-    */
 }
-
-// Hides the Somniel Map in Bulletin Board
-/*
-fn somniel_map_build_attrs(_menu_item: &BasicMenuItem, _method_info: OptionalMethod) -> BasicMenuItemAttribute {
-    if GameUserData::get_sequence() != 4 { BasicMenuItemAttribute::Hide }
-    else { BasicMenuItemAttribute::Enable }
-}
-*/
 
 #[skyline::from_offset(0x01b3aab0)]
 fn get_chapter_type(method_info: OptionalMethod) -> i32;

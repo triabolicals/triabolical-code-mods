@@ -51,21 +51,19 @@ pub fn get_position_stack(unit: &Unit) -> i32 {
 }
 pub fn check_effectiveness_unit(unit: &Unit, item: &UnitItem) -> i32 {
     let mut result = 0;
-    if item.flags & 1 == 1 {
-        if let Some(item_equip_skills) = item.get_equipped_skills() {
-            item_equip_skills.list.item.iter()
-                .for_each(|skill_entity| {
-                    if let Some(skill) = skill_entity.get_skill() {
-                        let eff = skill.get_efficacy_value();
-                        if eff > 1 { result |= 1 << eff; }
-                    }
+    if let Some(item_equip_skills) = item.get_equipped_skills() {
+        item_equip_skills.list.item.iter()
+            .for_each(|skill_entity| {
+                if let Some(skill) = skill_entity.get_skill() {
+                    let eff = skill.get_efficacy_value();
+                    if eff > 1 { result |= 1 << eff; }
                 }
-            );
-        }
+            }
+        );
     }
     if let Some(mask) = unit.mask_skill {
         mask.iter()
-            .filter(|skill| skill.get_category() != 3 && skill.get_category() != 4 && skill.get_skill().is_some_and(|s| s.get_efficacy_value() > 1))
+            .filter(|skill| skill.get_category() != 3 && skill.get_category() != 4 && skill.get_skill().is_some_and(|s| s.get_efficacy_value() > 1 && s.get_efficacy() < 128 ))
             .for_each(|skill|{
                 let eff = skill.get_skill().unwrap().get_efficacy_value();
                 if eff > 1 { result |= 1 << eff; }
